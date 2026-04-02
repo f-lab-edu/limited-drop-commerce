@@ -1,0 +1,35 @@
+services:
+  app:
+    container_name: app
+    image: dustjq1005/commerce:latest
+    depends_on:
+      - mysql
+    env_file:
+      - .env
+    ports:
+      - "8080:8080"
+    networks:
+      - web
+    volumes:
+      - .:/app
+
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    restart: always
+    ports:
+      - "3307:3306"
+    volumes:
+      - ./data/:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PW}
+      MYSQL_DATABASE: ${DB_DATABASE_NAME}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    networks:
+      - web
+
+networks:
+  web:
+    driver: bridge

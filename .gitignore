@@ -255,3 +255,9 @@ gradle-app.setting
 *.hprof
 
 # End of https://www.toptal.com/developers/gitignore/api/java,gradle,macos,intellij+all,git,windows,maven,visualstudiocode
+
+
+# docker db container
+data/
+
+.gitkeep
