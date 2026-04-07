@@ -25,6 +25,10 @@ repositories {
 	mavenCentral()
 }
 
+test {
+	systemProperty 'spring.profiles.active', 'test'
+}
+
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
@@ -39,15 +43,15 @@ dependencies {
 	runtimeOnly 'com.h2database:h2'
 	runtimeOnly 'com.mysql:mysql-connector-j'
 
+	testImplementation platform("org.testcontainers:testcontainers-bom:1.19.7")
+
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.security:spring-security-test'
+	testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
+	testImplementation 'org.testcontainers:testcontainers-junit-jupiter'
+	testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+	testImplementation 'org.testcontainers:mysql'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-}
-
-hibernate {
-	enhancement {
-		enableAssociationManagement = true
-	}
 }
 
 tasks.named('test') {

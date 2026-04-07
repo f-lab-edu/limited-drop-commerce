@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: commerce
+
+  config:
+    import:
+      - classpath:/yml/application-local.yml
+  profiles:
+    group:
+      local: local
