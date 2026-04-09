@@ -1,6 +1,6 @@
 package com.mist.commerce.domain.product.entity;
 
-import com.mist.commerce.common.entity.BaseTimeEntity;
+import com.mist.commerce.global.entity.BaseTimeEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;

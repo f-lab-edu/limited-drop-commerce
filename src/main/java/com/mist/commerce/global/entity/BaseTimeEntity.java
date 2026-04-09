@@ -1,4 +1,4 @@
-package com.mist.commerce.common.entity;
+package com.mist.commerce.global.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;

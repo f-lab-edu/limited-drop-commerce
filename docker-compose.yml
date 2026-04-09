@@ -12,9 +12,6 @@ services:
       - web
     volumes:
       - .:/app
-      - ./build/classes:/app/build/classes # hot reload 위한 볼륨 매핑
-    environment:
-      - SPRING_DEVTOOLS_RESTART_ENABLED=true
 
   mysql:
     image: mysql:8.0

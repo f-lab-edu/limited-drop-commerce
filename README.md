@@ -75,7 +75,7 @@ Kafka
 
 도메인 중심 구조를 채택합니다.
 
-> [패키지 구조.md](doc/패키지구조.md)
+> [패키지 구조.md](docs/패키지구조.md)
 
 ---
 
@@ -127,4 +127,4 @@ docker-compose up -d mysql
 
 GitHub Flow를 사용합니다.
 
-> [브랜치 전략/ 커밋 컨벤션 .md](doc/브랜치전략.md)
+> [브랜치 전략/ 커밋 컨벤션 .md](docs/브랜치전략.md)
