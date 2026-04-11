@@ -128,3 +128,7 @@ docker-compose up -d mysql
 GitHub Flow를 사용합니다.
 
 > [브랜치 전략/ 커밋 컨벤션 .md](docs/브랜치전략.md)
+
+## Use case
+
+> [Use case.md](docs/유스케이스.md)
