@@ -1,0 +1,19 @@
+spring:
+  config:
+    activate:
+      on-profile: local
+    import: optional:file:.env[.properties]
+
+  datasource:
+    url: jdbc:mysql://${DB_LOCAL_HOST}:${DB_LOCALHOST_PORT}/${DB_TEST_DATABASE_NAME}?allowPublicKeyRetrieval=true&useSSL=true&serverTimezone=UTC
+    hikari:
+      username: ${DB_USERNAME}
+      password: ${DB_PASSWORD}
+      driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    defer-datasource-initialization: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect

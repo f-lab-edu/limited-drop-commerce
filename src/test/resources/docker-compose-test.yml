@@ -1,0 +1,15 @@
+services:
+  test-mysql:
+    image: mysql:8.0
+    restart: always
+    ports:
+      - "3308:3306"
+    volumes:
+      - ./init-schema.sql:/docker-entrypoint-initdb.d/init.sql
+    environment:
+      MYSQL_ROOT_HOST: '%'
+      MYSQL_DATABASE: 'testdb'
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
