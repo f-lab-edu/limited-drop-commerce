@@ -20,20 +20,33 @@ GitHub Flow는 단순하고 지속적인 배포에 적합한 경량 워크플로
 ```
 예시
 main
- ├── feature/login
- ├── feature/product-list
- ├── fix/order-bug
- └── chore/update-dependencies
+ ├── feat/#3
+ ├── fix/#12
+ ├── docs/#21
+ └── chore/#34
 ```
 
 | 브랜치 | 설명 |
 |--------|------|
 | `main` | 항상 배포 가능한 상태. 직접 커밋 금지 |
-| `feature/*` | 새로운 기능 개발 |
-| `fix/*` | 버그 수정 |
-| `chore/*` | 설정, 의존성, 빌드 등 비기능 변경 |
-| `docs/*` | 문서 작성 및 수정 |
-| `refactor/*` | 기능 변경 없는 코드 구조 개선 |
+| `feat/#<issue-number>` | 새로운 기능 개발 |
+| `fix/#<issue-number>` | 버그 수정 |
+| `chore/#<issue-number>` | 설정, 의존성, 빌드 등 비기능 변경 |
+| `docs/#<issue-number>` | 문서 작성 및 수정 |
+| `refactor/#<issue-number>` | 기능 변경 없는 코드 구조 개선 |
+
+브랜치 이름 규칙:
+
+- 브랜치명은 반드시 `타입/#이슈번호` 형식을 사용한다.
+- 이슈 번호는 GitHub Issue 번호를 기준으로 한다.
+- 하나의 브랜치는 하나의 이슈만 담당한다.
+
+예시:
+
+- `feat/#3`
+- `fix/#12`
+- `docs/#21`
+- `refactor/#44`
 
 ---
 
@@ -46,7 +59,7 @@ main
 ```bash
 git checkout main
 git pull origin main
-git checkout -b feature/product-detail
+git checkout -b feat/#3
 ```
 
 ### 2. 작업 및 커밋
@@ -61,7 +74,7 @@ git commit -m "feat: 상품 상세 조회 API 구현"
 ### 3. 원격 브랜치에 Push
 
 ```bash
-git push origin feature/product-detail
+git push origin feat/#3
 ```
 
 ### 4. Pull Request 생성
