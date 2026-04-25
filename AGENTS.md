@@ -1,10 +1,10 @@
-# CLAUDE.md
+# AGENTS.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
 
-고동시성 환경에서 선착순 주문, 재고 선점, 결제 만료 복구를 처리하는 이벤트 기반 한정 판매 커머스 백엔드 시스템 (Java 21, Spring Boot 4.0).
+고동시성 환경에서 선착순 주문, 재고 선점, 결제 만료 복구를 처리하는 이벤트 기반 한정 판매 커머스 백엔드 시스템
 
 ## Commands
 

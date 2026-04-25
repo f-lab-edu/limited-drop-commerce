@@ -1,7 +1,9 @@
 # ERD — Limited Drop Commerce
 
-> 이 문서는 제공된 ERD 이미지를 기준으로 작성한 데이터 모델 설명서입니다.  
-> 실제 구현 시에는 `docs/architecture.md`, `docs/api-contract.md`와 함께 일관성을 유지한다.
+> 이 문서는 `limited-drop-commerce`의 데이터 모델 설명서다.
+
+테이블 구조, 관계, 제약 조건, 인덱스 권장 사항을 정의한다.
+도메인 흐름이나 API 세부 계약은 각각 `docs/use-cases.md`, `docs/api-contract.md`에서 관리한다.
 
 ---
 ## 1. ERD Overview
@@ -16,21 +18,6 @@
 | 재고 선점 | `inventory_reservation` | 한정 수량 선점, 만료, 확정, 복구 상태 관리 |
 | 주문 | `orders`, `order_item`, `order_item_option`, `orders_event` | 주문, 주문 상품, 주문 시점 옵션 스냅샷 관리 |
 | 결제 | `payment`, `payment_transaction` | 결제 상태와 PG 트랜잭션 이력 관리 |
-
-핵심 흐름:
-
-```text
-company ─┐
-         ├─ users ─ orders ─ order_item ─ order_item_option
-         │            │
-         │            ├─ payment ─ payment_transaction
-         │            │
-         │            └─ inventory_reservation
-         │
-brand ─ product ─ event_item ─ inventory_reservation
-  │                    ▲
-  └─ event ────────────┘
-```
 
 ---
 
