@@ -42,7 +42,7 @@ public class User extends BaseTimeEntity {
 
     private String password;
 
-    @Column(unique = true)
+    @Column(nullable = false, unique = true, columnDefinition = "VARCHAR(255) COLLATE utf8mb4_bin")
     private String email;
 
     private String phone;

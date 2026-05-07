@@ -127,6 +127,35 @@ chore: QueryDSL 의존성 추가
 - 커밋 메시지는 명확하고 간결하게 작성합니다.
 - 커밋 단위는 하나의 논리적 변경으로 제한합니다.
 
+## 커밋 본문 작성 지침
+
+변경 범위가 테스트, 설정, 문서, 여러 계층의 코드를 함께 포함하는 경우 제목만으로 의도를 파악하기 어렵기 때문에 커밋 본문을 함께 작성합니다.
+
+- 첫 줄 제목은 `<type>: <subject>` 형식을 유지합니다.
+- 본문에는 `변경 내용`, `검증`, `참고 사항`을 구분해 작성합니다.
+- `변경 내용`에는 실제로 바뀐 코드와 문서의 핵심을 항목별로 적습니다.
+- `검증`에는 실행한 테스트 명령과 결과를 적습니다.
+- 실행하지 못한 검증이 있으면 생략하지 않고 사유를 적습니다.
+- `참고 사항`에는 후속 작업, 제외한 범위, 운영상 주의점이 있을 때만 적습니다.
+- 본문은 변경 이유와 영향 범위를 설명하되 구현 코드 전체를 반복하지 않습니다.
+
+예시:
+
+```text
+feat: 사용자 Repository 구현
+
+변경 내용:
+- 사용자, OAuth 계정, Refresh Token 세션 Repository를 추가
+- EmailVerification 최신 조회 정렬을 createdAt DESC, id DESC로 정의
+- Repository 통합 테스트와 Redis 저장소 테스트를 추가
+
+검증:
+- ./gradlew test --tests "com.mist.commerce.domain.user.repository.UserRepositoryTest" -x processTestAot -x compileAotTestJava -x processAotTestResources
+
+참고 사항:
+- 전체 테스트는 AOT 단계의 Testcontainers 포트 바인딩 문제로 별도 조정 필요
+```
+
 ---
 
 ## PR 규칙

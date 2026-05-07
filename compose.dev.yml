@@ -25,6 +25,7 @@ services:
           path: ./gradlew
     depends_on:
       - mysql
+      - redis
 
   mysql:
     image: mysql:8.0
@@ -40,6 +41,15 @@ services:
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
+    networks:
+      - web
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: redis
+    restart: always
+    ports:
+      - "6379:6379"
     networks:
       - web
 

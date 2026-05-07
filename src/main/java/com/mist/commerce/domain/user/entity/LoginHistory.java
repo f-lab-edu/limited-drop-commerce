@@ -1,19 +1,22 @@
 package com.mist.commerce.domain.user.entity;
 
+import com.mist.commerce.global.entity.BaseTimeEntity;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
+@Table(name = "login_histories")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class LoginHistory {
+public class LoginHistory extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

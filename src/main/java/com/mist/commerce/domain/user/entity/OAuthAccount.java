@@ -35,9 +35,10 @@ public class OAuthAccount extends BaseTimeEntity {
     private User user;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private OAuthProvider provider;
 
-    @Column(name = "provider_user_id")
+    @Column(name = "provider_user_id", nullable = false)
     private String providerUserId;
 
     private String providerEmail;
