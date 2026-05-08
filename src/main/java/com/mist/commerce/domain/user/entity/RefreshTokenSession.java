@@ -58,6 +58,24 @@ public class RefreshTokenSession extends BaseTimeEntity {
         return session;
     }
 
+    public static RefreshTokenSession of(
+            Long userId,
+            String sessionId,
+            SessionStatus status,
+            LocalDateTime expiredAt,
+            String ipAddress,
+            String userAgent,
+            String deviceId,
+            String deviceName
+    ) {
+        RefreshTokenSession session = of(userId, sessionId, status, expiredAt);
+        session.ipAddress = ipAddress;
+        session.userAgent = userAgent;
+        session.deviceId = deviceId;
+        session.deviceName = deviceName;
+        return session;
+    }
+
     public boolean isExpired() {
         return expiredAt != null && !expiredAt.isAfter(LocalDateTime.now());
     }
