@@ -6,8 +6,16 @@ services:
       dockerfile: Dockerfile.dev
     ports:
       - "8080:8080"
+    env_file:
+      - .env
     environment:
       SPRING_PROFILES_ACTIVE: local
+    volumes:
+      - ./src:/app/src
+      - ./build.gradle:/app/build.gradle
+      - ./settings.gradle:/app/settings.gradle
+      - ./gradle:/app/gradle
+      - ./gradlew:/app/gradlew
     develop:
       watch:
         - action: sync
@@ -26,6 +34,8 @@ services:
     depends_on:
       - mysql
       - redis
+    networks:
+      - web
 
   mysql:
     image: mysql:8.0
