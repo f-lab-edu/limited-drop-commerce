@@ -53,9 +53,9 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
             var userByEmail = userRepository.findByEmail(email);
             if (userByEmail.isPresent()) {
                 if (userByEmail.get().getUserType() == UserType.COMPANY) {
-                    throw new OAuthAccountAlreadyLinkedToBusinessException();
+                    throw oauth2UserLoadFailed(new OAuthAccountAlreadyLinkedToBusinessException());
                 }
-                throw new UserEmailDuplicatedException(email);
+                throw oauth2UserLoadFailed(new UserEmailDuplicatedException(email));
             }
 
             user = userRepository.save(User.createPersonal(email, name));
@@ -77,5 +77,13 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
             return null;
         }
         return value.toString();
+    }
+
+    private OAuth2AuthenticationException oauth2UserLoadFailed(RuntimeException cause) {
+        return new OAuth2AuthenticationException(
+                new OAuth2Error("oauth2_user_load_failed"),
+                cause.getMessage(),
+                cause
+        );
     }
 }

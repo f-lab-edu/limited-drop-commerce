@@ -32,7 +32,7 @@ public class User extends BaseTimeEntity {
     private Company company;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "field")
+    @Column(name = "user_type")
     private UserType userType;
 
     @Enumerated(EnumType.STRING)

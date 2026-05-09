@@ -148,7 +148,7 @@ class CustomOAuth2UserServiceTest {
     }
 
     @Test
-    void loadUser_OAuthAccount_없고_email로_USER_타입_계정_있으면_USER_EMAIL_DUPLICATED_예외() {
+    void loadUser_OAuthAccount_없고_email로_USER_타입_계정_있으면_USER_EMAIL_DUPLICATED를_cause로_감싼_OAuth2AuthenticationException() {
         OAuth2UserRequest request = givenGoogleRequest("sub-123", "a@test.com", "홍길동");
         given(oAuthAccountRepository.findByProviderAndProviderUserId(OAuthProvider.GOOGLE, "sub-123"))
                 .willReturn(Optional.empty());
@@ -156,14 +156,15 @@ class CustomOAuth2UserServiceTest {
                 .willReturn(Optional.of(user("a@test.com", "홍길동", UserType.USER, 10L)));
 
         assertThatThrownBy(() -> service.loadUser(request))
-                .isInstanceOf(UserEmailDuplicatedException.class)
+                .isInstanceOf(OAuth2AuthenticationException.class)
+                .hasCauseInstanceOf(UserEmailDuplicatedException.class)
                 .hasMessageContaining("a@test.com");
         verify(userRepository, never()).save(any(User.class));
         verify(oAuthAccountRepository, never()).save(any(OAuthAccount.class));
     }
 
     @Test
-    void loadUser_OAuthAccount_없고_email로_COMPANY_타입_계정_있으면_OAUTH_ACCOUNT_ALREADY_LINKED_TO_BUSINESS_예외() {
+    void loadUser_OAuthAccount_없고_email로_COMPANY_타입_계정_있으면_OAUTH_ACCOUNT_ALREADY_LINKED_TO_BUSINESS를_cause로_감싼_OAuth2AuthenticationException() {
         OAuth2UserRequest request = givenGoogleRequest("sub-123", "a@test.com", "홍길동");
         given(oAuthAccountRepository.findByProviderAndProviderUserId(OAuthProvider.GOOGLE, "sub-123"))
                 .willReturn(Optional.empty());
@@ -171,7 +172,8 @@ class CustomOAuth2UserServiceTest {
                 .willReturn(Optional.of(user("a@test.com", "홍길동", UserType.COMPANY, 10L)));
 
         assertThatThrownBy(() -> service.loadUser(request))
-                .isInstanceOf(OAuthAccountAlreadyLinkedToBusinessException.class);
+                .isInstanceOf(OAuth2AuthenticationException.class)
+                .hasCauseInstanceOf(OAuthAccountAlreadyLinkedToBusinessException.class);
         verify(userRepository, never()).save(any(User.class));
         verify(oAuthAccountRepository, never()).save(any(OAuthAccount.class));
     }
