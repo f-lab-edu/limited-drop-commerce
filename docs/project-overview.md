@@ -38,6 +38,8 @@
 | `docs/use-cases.md` | 액터별 유스케이스, 기본 흐름, 예외 흐름, 사후 조건 |
 | `docs/erd.md` | 테이블 구조, 관계, 제약 조건, 데이터 모델 설명 |
 | `docs/branch-rules.md` | 브랜치 전략, 커밋 메시지 규칙, PR 규칙 |
+| `docs/development-workflow.md` | 작업 완료 기준, TDD/검증 흐름 |
+| `docs/tooling-guidelines.md` | 개발 도구 사용 지침 |
 
 ## 범위
 
