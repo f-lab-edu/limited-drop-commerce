@@ -12,7 +12,7 @@ class LoginHistoryTest {
     void success() {
         LoginHistory history = LoginHistory.success(1L, LoginType.GOOGLE, "127.0.0.1", "Mozilla/5.0");
 
-        assertThat(history.getMemberId()).isEqualTo(1L);
+        assertThat(history.getUserId()).isEqualTo(1L);
         assertThat(history.getLoginType()).isEqualTo(LoginType.GOOGLE);
         assertThat(history.getIpAddress()).isEqualTo("127.0.0.1");
         assertThat(history.getUserAgent()).isEqualTo("Mozilla/5.0");
@@ -31,7 +31,7 @@ class LoginHistoryTest {
                 "USER_EMAIL_DUPLICATED"
         );
 
-        assertThat(history.getMemberId()).isEqualTo(1L);
+        assertThat(history.getUserId()).isEqualTo(1L);
         assertThat(history.getLoginType()).isEqualTo(LoginType.GOOGLE);
         assertThat(history.getIpAddress()).isEqualTo("127.0.0.1");
         assertThat(history.getUserAgent()).isEqualTo("Mozilla/5.0");

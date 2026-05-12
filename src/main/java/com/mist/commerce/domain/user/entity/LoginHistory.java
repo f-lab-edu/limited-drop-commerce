@@ -22,7 +22,7 @@ public class LoginHistory extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Long memberId;
+    private Long userId;
 
     @Enumerated(EnumType.STRING)
     private LoginType loginType;
@@ -37,7 +37,7 @@ public class LoginHistory extends BaseTimeEntity {
 
     public static LoginHistory success(Long memberId, LoginType loginType, String ipAddress, String userAgent) {
         LoginHistory loginHistory = new LoginHistory();
-        loginHistory.memberId = memberId;
+        loginHistory.userId = memberId;
         loginHistory.loginType = loginType;
         loginHistory.ipAddress = ipAddress;
         loginHistory.userAgent = userAgent;
@@ -46,14 +46,14 @@ public class LoginHistory extends BaseTimeEntity {
     }
 
     public static LoginHistory failure(
-            Long memberId,
+            Long userId,
             LoginType loginType,
             String ipAddress,
             String userAgent,
             String failureReason
     ) {
         LoginHistory loginHistory = new LoginHistory();
-        loginHistory.memberId = memberId;
+        loginHistory.userId = userId;
         loginHistory.loginType = loginType;
         loginHistory.ipAddress = ipAddress;
         loginHistory.userAgent = userAgent;

@@ -1,7 +1,6 @@
 package com.mist.commerce.domain.user.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase.Replace.NONE;
 
 import com.mist.commerce.domain.user.entity.LoginHistory;
 import com.mist.commerce.domain.user.entity.LoginType;
@@ -38,7 +37,7 @@ class LoginHistoryRepositoryTest extends MySqlContainerTestSupport {
 
         // then
         assertThat(found.getId()).isNotNull();
-        assertThat(found.getMemberId()).isEqualTo(1L);
+        assertThat(found.getUserId()).isEqualTo(1L);
         assertThat(found.getLoginType()).isEqualTo(LoginType.GOOGLE);
         assertThat(found.getSuccessYn()).isEqualTo("Y");
         assertThat(found.getIpAddress()).isEqualTo("127.0.0.1");
@@ -104,7 +103,7 @@ class LoginHistoryRepositoryTest extends MySqlContainerTestSupport {
 
         // then
         assertThat(result).hasSize(3);
-        assertThat(result).allMatch(history -> history.getMemberId().equals(1L));
+        assertThat(result).allMatch(history -> history.getUserId().equals(1L));
     }
 
     @Test

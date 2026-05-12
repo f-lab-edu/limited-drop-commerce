@@ -138,7 +138,7 @@ class AuthServiceTest {
         ArgumentCaptor<LoginHistory> captor = ArgumentCaptor.forClass(LoginHistory.class);
         verify(loginHistoryRepository).save(captor.capture());
         LoginHistory history = captor.getValue();
-        assertThat(history.getMemberId()).isEqualTo(1L);
+        assertThat(history.getUserId()).isEqualTo(1L);
         assertThat(history.getLoginType()).isEqualTo(LoginType.GOOGLE);
         assertThat(history.getSuccessYn()).isEqualTo("Y");
         assertThat(history.getFailureReason()).isNull();
