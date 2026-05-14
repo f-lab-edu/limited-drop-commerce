@@ -36,6 +36,7 @@ erDiagram
     email_credentials ||--|| users : belongs_to
     email_verifications }o--|| email_credentials : verifies
 
+    company ||--o{ brand : owns
     brand ||--o{ product : owns
     brand ||--o{ event : hosts
 
@@ -262,18 +263,25 @@ Redis에 저장된 Refresh Token 세션의 메타데이터를 관리한다.
 
 ### 3.3 `brand`
 
-상품과 이벤트를 소유하는 브랜드 정보를 저장한다.
+기업이 소유하는 브랜드 정보를 저장한다. 상품과 이벤트는 브랜드에 소속된다.
 
-| 컬럼 | 타입             | 설명 |
-|------|----------------|------|
-| `id` | `BIGINT`       | 브랜드 ID |
-| `name` | `VARCHAR(100)` | 브랜드명 |
-| `description` | `VARCHAR(255)` | 브랜드 설명 |
+| 컬럼           | 타입             | 설명 |
+|--------------|----------------|------|
+| `id`         | `BIGINT`       | 브랜드 ID (PK) |
+| `company_id` | `BIGINT`       | 기업 ID (FK → `company.id`, NOT NULL) |
+| `name`       | `VARCHAR(100)` | 브랜드명 (NOT NULL) |
+| `description` | `VARCHAR(255)` | 브랜드 설명 (NULLABLE) |
 | `created_at` | `TIMESTAMP`    | 생성 일시 |
 | `updated_at` | `TIMESTAMP`    | 수정 일시 |
 
+제약:
+
+- `UNIQUE(company_id, name)` — 동일 기업 내 브랜드명 중복 방지
+- `FOREIGN KEY (company_id) REFERENCES company(id)` (제약명: `fk_brand_company_id`)
+
 관계:
 
+- `company` 1:N `brand`
 - `brand` 1:N `product`
 - `brand` 1:N `event`
 
@@ -661,6 +669,7 @@ PG 요청/응답 트랜잭션 이력을 저장한다.
 | `email_credentials` → `email_verifications` | 1:N | 이메일 인증 재발송 등 여러 인증 토큰 이력을 가질 수 있다. |
 | `users` → `orders` | 1:N | 한 회원은 여러 주문을 생성할 수 있다. |
 | `users` → `payment` | 1:N | 한 회원은 여러 결제 요청을 만들 수 있다. |
+| `company` → `brand` | 1:N | 한 기업은 여러 브랜드를 보유할 수 있고, 동일 기업 내 브랜드명은 유일하다. |
 | `brand` → `product` | 1:N | 하나의 브랜드는 여러 상품을 가진다. |
 | `brand` → `event` | 1:N | 하나의 브랜드는 여러 드롭 이벤트를 운영할 수 있다. |
 | `product` → `product_option_group` | 1:N | 상품은 여러 옵션 그룹을 가진다. |

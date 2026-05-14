@@ -241,6 +241,8 @@ INTERNAL_SERVER_ERROR
 | Reservation | `RESERVATION_INVALID_STATE` | `409` |
 | Drop Event | `DROP_EVENT_NOT_FOUND` | `404` |
 | Drop Event | `DROP_EVENT_NOT_OPEN` | `400` |
+| Brand | `BRAND_NAME_DUPLICATED` | `409` |
+| Brand | `BRAND_REGISTRATION_FORBIDDEN` | `403` |
 
 ---
 
@@ -369,3 +371,110 @@ Content-Type: application/json
 - JSON 필드가 `camelCase`인가?
 - 날짜/시간이 UTC ISO 8601 형식인가?
 - 목록 응답에서 빈 결과를 `[]`로 반환하는가?
+
+---
+
+## 11. 엔드포인트 예시 / Endpoint Examples
+
+### 11.1 `POST /api/v1/brands` — 브랜드 등록
+
+기업 회원이 본인 회사의 브랜드를 등록한다. 인증된 사용자만 호출 가능하며, 사용자 식별자는 JWT의 principal(`Long userId`)로 전달된다.
+
+**요청 / Request**
+
+```http
+POST /api/v1/brands
+Authorization: Bearer <access-token>
+Content-Type: application/json
+```
+
+```json
+{
+  "name": "Mist",
+  "description": "한정 드롭 전용 브랜드"
+}
+```
+
+요청 필드 제약:
+
+| 필드 | 타입 | 제약 |
+|---|---|---|
+| `name` | `string` | 필수, 공백 불가, 최대 100자 |
+| `description` | `string` | 선택, 최대 255자 |
+
+**성공 응답 / Success — `201 Created`**
+
+```json
+{
+  "success": true,
+  "code": "OK",
+  "message": "리소스가 생성되었습니다.",
+  "data": {
+    "brandId": 42,
+    "name": "Mist",
+    "description": "한정 드롭 전용 브랜드",
+    "companyId": 7,
+    "createdAt": "2026-05-14T10:00:00.000Z"
+  },
+  "errors": null,
+  "timestamp": "2026-05-14T10:00:00.000Z"
+}
+```
+
+**검증 실패 / Validation Failure — `400 Bad Request`**
+
+요청 본문이 `@NotBlank`/`@Size` 제약을 위반할 때.
+
+```json
+{
+  "success": false,
+  "code": "VALIDATION_ERROR",
+  "message": "입력값이 올바르지 않습니다.",
+  "data": null,
+  "errors": [
+    {
+      "field": "name",
+      "value": "",
+      "reason": "공백일 수 없습니다"
+    }
+  ],
+  "timestamp": "2026-05-14T10:00:00.000Z"
+}
+```
+
+**미인증 / Unauthenticated — `401 Unauthorized`**
+
+`Authorization` 헤더 없이 호출하면 Spring Security가 처리한다. (응답 본문은 `/api/**` 엔트리포인트가 기본 401만 보장하며, 후속 작업에서 본문 표준화 가능)
+
+**권한 없음 / Forbidden — `403 Forbidden`**
+
+다음 중 하나일 때:
+
+- 인증된 사용자가 `userType != COMPANY`
+- 기업 사용자이나 소속 `Company`가 없는 경우
+
+```json
+{
+  "success": false,
+  "code": "BRAND_REGISTRATION_FORBIDDEN",
+  "message": "Brand registration forbidden for user: 1",
+  "data": null,
+  "errors": null,
+  "timestamp": "2026-05-14T10:00:00.000Z"
+}
+```
+
+**브랜드명 중복 / Duplicated — `409 Conflict`**
+
+동일 회사 내에 같은 `name`의 브랜드가 이미 존재할 때.
+
+```json
+{
+  "success": false,
+  "code": "BRAND_NAME_DUPLICATED",
+  "message": "Duplicated brand name 'Mist' for company: 7",
+  "data": null,
+  "errors": null,
+  "timestamp": "2026-05-14T10:00:00.000Z"
+}
+```
