@@ -3,6 +3,8 @@ package com.mist.commerce.global.exception;
 import com.mist.commerce.domain.user.exception.InvalidTokenException;
 import com.mist.commerce.domain.user.exception.OAuthAccountAlreadyLinkedToBusinessException;
 import com.mist.commerce.domain.user.exception.UserEmailDuplicatedException;
+import com.mist.commerce.domain.brand.exception.BrandNameDuplicatedException;
+import com.mist.commerce.domain.brand.exception.BrandRegistrationForbiddenException;
 import com.mist.commerce.global.response.ApiResponse;
 import com.mist.commerce.global.response.ErrorDetail;
 import java.time.Clock;
@@ -24,6 +26,20 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleUserEmailDuplicated(UserEmailDuplicatedException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(ApiResponse.fail("USER_EMAIL_DUPLICATED", ex.getMessage(), clock.instant()));
+    }
+
+    @ExceptionHandler(BrandRegistrationForbiddenException.class)
+    public ResponseEntity<ApiResponse<Void>> handleBrandRegistrationForbidden(
+            BrandRegistrationForbiddenException ex
+    ) {
+        return ResponseEntity.status(ex.getHttpStatus())
+                .body(ApiResponse.fail(ex.getCode(), ex.getMessage(), clock.instant()));
+    }
+
+    @ExceptionHandler(BrandNameDuplicatedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleBrandNameDuplicated(BrandNameDuplicatedException ex) {
+        return ResponseEntity.status(ex.getHttpStatus())
+                .body(ApiResponse.fail(ex.getCode(), ex.getMessage(), clock.instant()));
     }
 
     @ExceptionHandler(OAuthAccountAlreadyLinkedToBusinessException.class)
