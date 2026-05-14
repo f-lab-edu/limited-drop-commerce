@@ -4,6 +4,7 @@ services:
     image: dustjq1005/commerce:latest
     depends_on:
       - mysql
+      - redis
     env_file:
       - .env
     ports:
@@ -27,6 +28,15 @@ services:
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
+    networks:
+      - web
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: redis
+    restart: always
+    ports:
+      - "6379:6379"
     networks:
       - web
 

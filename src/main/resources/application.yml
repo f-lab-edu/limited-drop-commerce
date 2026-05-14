@@ -1,23 +1,9 @@
 spring:
   application:
     name: commerce
-
   config:
     import:
       - classpath:/yml/application-local.yml
   profiles:
     group:
       local: local
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health
-
-logging:
-  level:
-    org.springframework.web: INFO
-    root: INFO
-    com.mist.commerce: DEBUG
-    org.hibernate.SQL: DEBUG

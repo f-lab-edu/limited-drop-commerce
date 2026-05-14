@@ -261,3 +261,18 @@ gradle-app.setting
 data/
 
 .gitkeep
+
+TODO.md
+
+test-case*.md
+
+# code-review-graph local index/cache and generated AI-tool integration files.
+# Keep these out of git because they are developer-machine specific.
+.code-review-graph/
+.claude/*
+.cursor/
+.kiro/
+.opencode.json
+.cursorrules
+.windsurfrules
+GEMINI.md

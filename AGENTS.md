@@ -13,7 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ./gradlew build
 
 # 애플리케이션 실행 (local 프로파일)
-docker-compose up -d app
+docker compose -f compose.dev.yml up -d app
 
 # 전체 테스트 실행
 ./gradlew test
@@ -25,7 +25,7 @@ docker-compose up -d app
 ./gradlew test --tests "com.mist.commerce.domain.product.repository.ProductRepositoryTest.findAll"
 
 # 인프라(MySQL) 실행
-docker-compose up -d mysql
+docker compose -f compose.dev.yml up -d mysql
 ```
 
 ## References Documents
@@ -37,3 +37,5 @@ docs 폴더 내에 설계 가이드를 따른다.
 - @docs/architecture.md : 프로젝트 아키텍처와 주요 패턴 설명
 - @docs/use-cases.md : 주요 기능별 시나리오와 흐름 설명
 - @docs/branch-rules.md : 브랜치 전략과 커밋 메시지 규칙 설명
+- @docs/development-workflow.md : 작업 완료 기준, TDD/검증 흐름 설명
+- @docs/tooling-guidelines.md : 개발 도구 사용 지침
