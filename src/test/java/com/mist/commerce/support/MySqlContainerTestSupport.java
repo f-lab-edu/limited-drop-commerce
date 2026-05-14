@@ -8,16 +8,19 @@ import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-@Testcontainers
 @ActiveProfiles({"test", "test-mysql"})
 public abstract class MySqlContainerTestSupport {
 
-    @Container
-    @ServiceConnection
-    static MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0")
-            .withDatabaseName("testdb")
-            .withUsername("test")
-            .withPassword("test");
+    static final MySQLContainer<?> mysql;
+
+    static {
+        mysql = new MySQLContainer<>("mysql:8.0")
+                .withDatabaseName("testdb")
+                .withUsername("test")
+                .withPassword("test");
+
+        mysql.start();
+    }
 
     @DynamicPropertySource
     static void overrideProps(DynamicPropertyRegistry registry) {

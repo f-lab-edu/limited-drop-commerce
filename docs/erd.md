@@ -13,6 +13,7 @@
 | 영역 | 주요 테이블 | 책임 |
 |------|-------------|------|
 | 회원/기업 | `users`, `company` | 일반 회원, 기업 회원, 기업 정보 관리 |
+| 인증 | `email_credentials`, `oauth_accounts`, `refresh_token_sessions`, `email_verifications`, `login_histories` | 이메일/OAuth 인증, 토큰 세션, 로그인 이력 관리 |
 | 상품/브랜드 | `brand`, `product`, `product_option_group`, `product_option_value` | 브랜드, 상품, 상품 옵션 관리 |
 | 드롭 이벤트 | `event`, `event_item` | 이벤트와 이벤트별 판매 상품/수량 관리 |
 | 재고 선점 | `inventory_reservation` | 한정 수량 선점, 만료, 확정, 복구 상태 관리 |
@@ -28,6 +29,12 @@ erDiagram
     company ||--o{ users : has
     users ||--o{ orders : places
     users ||--o{ payment : pays
+    users ||--o{ oauth_accounts : authenticates_via
+    users ||--o{ refresh_token_sessions : has_session
+    users ||--o{ login_histories : records
+
+    email_credentials ||--|| users : belongs_to
+    email_verifications }o--|| email_credentials : verifies
 
     brand ||--o{ product : owns
     brand ||--o{ event : hosts
@@ -90,31 +97,166 @@ erDiagram
 ### 3.2 `users`
 
 일반 회원과 기업 담당자 계정을 저장한다.
+인증 정보(이메일/비밀번호, OAuth)는 별도 테이블(`email_credentials`, `oauth_accounts`)에서 관리한다.
 
-| 컬럼 | 타입             | 설명 |
-|------|----------------|------|
-| `id` | `BIGINT`       | 회원 PK |
-| `company_id` | `BIGINT`       | 기업 ID. 기업 회원일 때 `company.id` 참조 |
-| `user_type` | `VARCHAR(20)`  | 회원 유형 |
-| `name` | `VARCHAR(20)`  | 회원 이름 |
-| `password` | `VARCHAR(255)` | 비밀번호 해시 |
-| `email` | `VARCHAR(200)` | 회원 이메일 |
-| `phone` | `VARCHAR(15)`  | 회원 연락처 |
+| 컬럼 | 타입 | 설명 |
+|------|------|------|
+| `id` | `BIGINT` | 회원 PK |
+| `company_id` | `BIGINT` | 기업 ID. 기업 회원일 때 `company.id` 참조. 일반 회원은 NULL |
+| `field` | `VARCHAR(255)` | 회원 유형 |
+| `status` | `VARCHAR(30)` | 계정 상태 |
+| `name` | `VARCHAR(255)` | 회원 이름 |
+| `password` | `VARCHAR(255)` | 비밀번호 해시 (이메일 가입 시 사용) |
+| `email` | `VARCHAR(255)` | 회원 이메일 (표시용, unique) |
+| `phone` | `VARCHAR(255)` | 회원 연락처 |
 | `address` | `VARCHAR(255)` | 회원 주소 |
 | `birth_date` | `VARCHAR(255)` | 생년월일 |
-| `created_at` | `DATETIME`     | 생성 일시 |
-| `updated_at` | `TIMESTAMP`    | 수정 일시 |
+| `created_at` | `TIMESTAMP` | 생성 일시 |
+| `updated_at` | `TIMESTAMP` | 수정 일시 |
 
-상태/유형값:
+회원 유형 (`field`):
 
-- `COMPANY`
-- `USER`
+- `COMPANY` — 기업 담당자
+- `USER` — 일반 회원
+
+계정 상태 (`status`):
+
+- `ACTIVE`
+- `EMAIL_VERIFICATION_REQUIRED`
+- `SUSPENDED`
+- `DELETED`
 
 권장 제약:
 
 - `email`은 unique로 관리한다.
 - `password`에는 평문이 아니라 단방향 해시를 저장한다.
 - `birth_date`는 구현 시 `DATE` 타입을 우선 검토한다.
+
+---
+
+### 3.2.1 `email_credentials`
+
+이메일/비밀번호 로그인 인증 정보를 저장한다.
+`users`와 1:1 관계이며, 소셜 전용 가입자는 이 테이블에 레코드가 없을 수 있다.
+
+| 컬럼 | 타입 | 설명 |
+|------|------|------|
+| `id` | `BIGINT` | 이메일 인증 정보 PK |
+| `email` | `VARCHAR(255)` | 로그인 이메일 (unique) |
+| `password` | `VARCHAR(255)` | 암호화된 비밀번호 |
+| `verified_at` | `DATETIME` | 이메일 인증 완료 일시. NULL이면 미인증 |
+| `created_at` | `DATETIME` | 생성 일시 |
+| `updated_at` | `DATETIME` | 수정 일시 |
+
+권장 제약:
+
+- `email`은 unique로 관리한다.
+- `verified_at`이 NULL인 경우 로그인을 제한한다.
+
+---
+
+### 3.2.2 `oauth_accounts`
+
+OAuth 제공자(Google 등)를 통한 소셜 계정 정보를 저장한다.
+
+| 컬럼 | 타입 | 설명 |
+|------|------|------|
+| `id` | `BIGINT` | OAuth 계정 PK |
+| `user_id` | `BIGINT` | 회원 ID (`users.id` 참조) |
+| `provider` | `VARCHAR(20)` | OAuth 제공자 |
+| `provider_user_id` | `VARCHAR(255)` | 제공자별 사용자 고유 ID |
+| `provider_email` | `VARCHAR(255)` | 제공자에서 받은 이메일 |
+| `created_at` | `TIMESTAMP` | 생성 일시 |
+| `updated_at` | `TIMESTAMP` | 수정 일시 |
+
+제공자 (`provider`):
+
+- `GOOGLE`
+
+권장 제약:
+
+- `(provider, provider_user_id)` unique constraint.
+
+---
+
+### 3.2.3 `refresh_token_sessions`
+
+Redis에 저장된 Refresh Token 세션의 메타데이터를 관리한다.
+실제 토큰 값은 Redis에 `session_id` 키로 저장되며, 이 테이블은 디바이스 정보·상태·만료 이력을 추적한다.
+
+| 컬럼 | 타입 | 설명 |
+|------|------|------|
+| `id` | `BIGINT` | 세션 PK |
+| `session_id` | `VARCHAR(100)` | Redis Refresh Token 식별자 (unique) |
+| `device_id` | `VARCHAR(100)` | 디바이스 식별자 |
+| `device_name` | `VARCHAR(100)` | 디바이스 이름 |
+| `ip_address` | `VARCHAR(45)` | 로그인 IP |
+| `user_agent` | `VARCHAR(500)` | User-Agent |
+| `status` | `VARCHAR(20)` | 세션 상태 |
+| `last_used_at` | `DATETIME` | 마지막 사용 일시 |
+| `expired_at` | `DATETIME` | 세션 만료 일시 |
+| `created_at` | `DATETIME` | 생성 일시 |
+| `updated_at` | `DATETIME` | 수정 일시 |
+
+세션 상태 (`status`):
+
+- `ACTIVE`
+- `EXPIRED`
+- `REVOKED`
+
+권장 제약:
+
+- `session_id`는 unique로 관리한다.
+- Redis TTL과 `expired_at`을 동기화하여 만료 일관성을 유지한다.
+
+---
+
+### 3.2.4 `login_histories`
+
+회원의 로그인 시도 이력을 저장한다. 보안 감사 및 비정상 접근 탐지에 활용한다.
+
+| 컬럼 | 타입 | 설명 |
+|------|------|------|
+| `id` | `BIGINT` | 로그인 이력 PK |
+| `member_id` | `BIGINT` | 회원 ID (`users.id` 참조) |
+| `login_type` | `VARCHAR(20)` | 로그인 방식 |
+| `ip_address` | `VARCHAR(45)` | 로그인 IP |
+| `user_agent` | `VARCHAR(500)` | User-Agent |
+| `success_yn` | `CHAR(1)` | 로그인 성공 여부 (`Y` / `N`) |
+| `failure_reason` | `VARCHAR(255)` | 로그인 실패 사유 |
+| `created_at` | `DATETIME` | 발생 일시 |
+
+로그인 방식 (`login_type`):
+
+- `EMAIL`
+- `GOOGLE`
+- `KAKAO`
+- `NAVER`
+
+권장 사항:
+
+- 민감 정보(비밀번호 등)는 저장하지 않는다.
+- `created_at` 인덱스를 두어 기간별 이력 조회를 최적화한다.
+
+---
+
+### 3.2.5 `email_verifications`
+
+이메일 인증 토큰을 저장한다. 회원가입 시 이메일 주소 유효성 확인에 사용한다.
+
+| 컬럼 | 타입 | 설명 |
+|------|------|------|
+| `id` | `BIGINT` | 이메일 인증 PK |
+| `email` | `VARCHAR(255)` | 인증 대상 이메일 |
+| `verification_token` | `VARCHAR(255)` | 이메일 인증 토큰 (unique) |
+| `expired_at` | `DATETIME` | 토큰 만료 일시 |
+| `verified_at` | `DATETIME` | 인증 완료 일시. NULL이면 미완료 |
+| `created_at` | `DATETIME` | 생성 일시 |
+
+권장 제약:
+
+- `verification_token`은 unique로 관리한다.
+- 만료된 토큰은 주기적으로 정리한다.
 
 ---
 
@@ -512,6 +654,11 @@ PG 요청/응답 트랜잭션 이력을 저장한다.
 | 관계 | 카디널리티 | 설명 |
 |------|------------|------|
 | `company` → `users` | 1:N | 하나의 기업에 여러 담당자 계정이 속할 수 있다. |
+| `users` → `email_credentials` | 1:1 | 이메일 가입 회원만 인증 정보를 가진다. |
+| `users` → `oauth_accounts` | 1:N | 한 회원은 여러 소셜 계정을 연결할 수 있다. |
+| `users` → `refresh_token_sessions` | 1:N | 한 회원은 여러 디바이스 세션을 가질 수 있다. |
+| `users` → `login_histories` | 1:N | 한 회원의 로그인 시도 이력을 모두 보관한다. |
+| `email_credentials` → `email_verifications` | 1:N | 이메일 인증 재발송 등 여러 인증 토큰 이력을 가질 수 있다. |
 | `users` → `orders` | 1:N | 한 회원은 여러 주문을 생성할 수 있다. |
 | `users` → `payment` | 1:N | 한 회원은 여러 결제 요청을 만들 수 있다. |
 | `brand` → `product` | 1:N | 하나의 브랜드는 여러 상품을 가진다. |
@@ -538,6 +685,10 @@ PG 요청/응답 트랜잭션 이력을 저장한다.
 |--------|------|
 | `company` | `business_number` |
 | `users` | `email` |
+| `email_credentials` | `email` |
+| `oauth_accounts` | `provider`, `provider_user_id` |
+| `refresh_token_sessions` | `session_id` |
+| `email_verifications` | `verification_token` |
 | `orders` | `order_no` |
 | `inventory_reservation` | `reservation_no` |
 | `payment` | `payment_no` |
@@ -548,6 +699,10 @@ PG 요청/응답 트랜잭션 이력을 저장한다.
 | 테이블 | 인덱스 후보 |
 |--------|-------------|
 | `users` | `company_id`, `email` |
+| `oauth_accounts` | `user_id`, `provider` |
+| `refresh_token_sessions` | `user_id` (users FK 추가 필요), `status`, `expired_at` |
+| `login_histories` | `member_id`, `created_at` |
+| `email_verifications` | `email`, `expired_at` |
 | `product` | `brand_id`, `status` |
 | `event` | `brand_id`, `status`, `start_at`, `end_at` |
 | `event_item` | `event_id`, `product_id` |
