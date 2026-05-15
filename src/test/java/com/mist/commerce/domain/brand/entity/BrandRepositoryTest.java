@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.mist.commerce.domain.brand.repository.BrandRepository;
+import com.mist.commerce.global.config.JpaAuditingConfig;
 import com.mist.commerce.support.MySqlContainerTestSupport;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;
@@ -12,8 +13,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.context.annotation.Import;
 
 @DataJpaTest
+@Import(JpaAuditingConfig.class)
 class BrandRepositoryTest extends MySqlContainerTestSupport {
 
     @Autowired
@@ -187,11 +190,12 @@ class BrandRepositoryTest extends MySqlContainerTestSupport {
     }
 
     @Test
-    @DisplayName("존재하지 않는 companyId로 Brand를 저장하면 FK 제약으로 실패한다")
-    void saveAndFlush_rejectsBrandWithNonexistentCompanyId() {
-        assertThatThrownBy(() -> brandRepository.saveAndFlush(
-                Brand.create(9999L, "Mist Brand", "Limited drop brand")))
-                .isInstanceOf(DataIntegrityViolationException.class);
+    @DisplayName("엔티티 레벨 FK 제약은 없고 DB 마이그레이션에서 강제한다")
+    void saveAndFlush_withNonExistentCompanyId_succeedsAtEntityLevel_fkEnforcedByMigration() {
+        Brand saved = brandRepository.saveAndFlush(Brand.create(9999L, "Mist Brand", "Limited drop brand"));
+
+        assertThat(saved.getId()).isNotNull();
+        assertThat(saved.getCompanyId()).isEqualTo(9999L);
     }
 
     @Test
@@ -202,6 +206,8 @@ class BrandRepositoryTest extends MySqlContainerTestSupport {
         assertThat(Brand.class.getDeclaredField("name")).isNotNull();
         assertThat(Brand.class.getDeclaredField("description")).isNotNull();
 
+        assertThatThrownBy(() -> Brand.class.getDeclaredField("company"))
+                .isInstanceOf(NoSuchFieldException.class);
         assertThatThrownBy(() -> Brand.class.getDeclaredField("company_id"))
                 .isInstanceOf(NoSuchFieldException.class);
     }

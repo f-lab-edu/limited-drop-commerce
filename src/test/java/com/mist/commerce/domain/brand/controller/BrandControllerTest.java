@@ -17,7 +17,7 @@ import com.mist.commerce.domain.brand.dto.BrandCreateResponse;
 import com.mist.commerce.domain.brand.exception.BrandNameDuplicatedException;
 import com.mist.commerce.domain.brand.exception.BrandRegistrationForbiddenException;
 import com.mist.commerce.domain.brand.service.BrandService;
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -55,7 +55,7 @@ class BrandControllerTest {
                 "Mist",
                 "desc",
                 7L,
-                Instant.parse("2026-05-14T00:00:00Z")
+                LocalDateTime.parse("2026-05-14T00:00:00")
         );
         given(brandService.create(eq(1L), any(BrandCreateRequest.class))).willReturn(response);
 
@@ -95,6 +95,20 @@ class BrandControllerTest {
         BrandCreateRequest request = new BrandCreateRequest("Mist", "desc");
 
         mockMvc.perform(post("/api/v1/brands")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized());
+
+        verify(brandService, never()).create(any(), any());
+    }
+
+    @Test
+    @DisplayName("잘못된 Bearer 토큰으로 요청하면 401을 반환한다")
+    void create_withInvalidBearerToken_returns401() throws Exception {
+        BrandCreateRequest request = new BrandCreateRequest("Mist", "desc");
+
+        mockMvc.perform(post("/api/v1/brands")
+                        .header("Authorization", "Bearer invalid-token")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized());
