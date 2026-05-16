@@ -1,4 +1,8 @@
 spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.security.oauth2.client.autoconfigure.servlet.OAuth2ClientWebSecurityAutoConfiguration
+
   config:
     activate:
       on-profile: test
@@ -23,6 +27,11 @@ spring:
     hibernate:
       ddl-auto: create-drop
     defer-datasource-initialization: true
+
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema-test.sql
 
   jackson:
     time-zone: Asia/Seoul
