@@ -1,7 +1,8 @@
 package com.mist.commerce.global.filter;
 
-import com.mist.commerce.domain.user.service.TokenService;
+import com.mist.commerce.domain.user.entity.UserType;
 import com.mist.commerce.domain.user.exception.InvalidTokenException;
+import com.mist.commerce.domain.user.service.TokenService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -38,10 +39,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (token != null && tokenService.validateToken(token)) {
             try {
                 Long userId = tokenService.getUserIdFromToken(token);
+                String userType = tokenService.getUserTypeFromToken(token);
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                         userId,
                         null,
-                        List.of(new SimpleGrantedAuthority("ROLE_USER"))
+                        List.of(new SimpleGrantedAuthority(toAuthority(userType)))
                 );
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             } catch (InvalidTokenException ignored) {
@@ -63,5 +65,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         return parts[1].trim();
+    }
+
+    private String toAuthority(String userType) {
+        if (userType == null || userType.isBlank()) {
+            return "ROLE_USER";
+        }
+        try {
+            return "ROLE_" + UserType.valueOf(userType);
+        } catch (IllegalArgumentException e) {
+            return "ROLE_USER";
+        }
     }
 }

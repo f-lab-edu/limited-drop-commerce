@@ -1,6 +1,7 @@
 package com.mist.commerce.domain.user.service;
 
 import com.mist.commerce.domain.user.exception.InvalidTokenException;
+import com.mist.commerce.domain.user.entity.UserType;
 import com.mist.commerce.global.config.JwtProperties;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -72,6 +73,19 @@ public class TokenService {
                 throw new InvalidTokenException();
             }
             return userId.longValue();
+        } catch (JwtException | IllegalArgumentException e) {
+            throw new InvalidTokenException();
+        }
+    }
+
+    public String getUserTypeFromToken(String token) {
+        try {
+            Claims claims = parseClaims(token);
+            String userType = claims.get("userType", String.class);
+            if (userType == null || userType.isBlank()) {
+                return UserType.USER.name();
+            }
+            return userType;
         } catch (JwtException | IllegalArgumentException e) {
             throw new InvalidTokenException();
         }
