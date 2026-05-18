@@ -10,7 +10,9 @@ import com.mist.commerce.domain.brand.exception.BrandRegistrationForbiddenExcept
 import com.mist.commerce.global.response.ApiResponse;
 import com.mist.commerce.global.response.ErrorDetail;
 import java.time.Clock;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +28,12 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class GlobalExceptionHandler {
 
     private final Clock clock;
+
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<ApiResponse> handleBusinessException(BusinessException ex) {
+        return ResponseEntity.status(ex.getHttpStatus())
+                .body(ApiResponse.fail(ex.getCode(), ex.getMessage(), List.of(ex.getErrorDetail()), clock.instant()));
+    }
 
     @ExceptionHandler(UserEmailDuplicatedException.class)
     public ResponseEntity<ApiResponse<Void>> handleUserEmailDuplicated(UserEmailDuplicatedException ex) {
@@ -67,12 +75,6 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BrandNotFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleBrandNotFound(BrandNotFoundException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(ApiResponse.fail(ex.getCode(), ex.getMessage(), clock.instant()));
-    }
-
-    @ExceptionHandler(ProductNotFoundException.class)
-    public ResponseEntity<ApiResponse<Void>> handleProductNotFound(ProductNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(ApiResponse.fail(ex.getCode(), ex.getMessage(), clock.instant()));
     }
