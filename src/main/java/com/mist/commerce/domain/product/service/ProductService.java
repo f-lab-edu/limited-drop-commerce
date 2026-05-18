@@ -25,12 +25,16 @@ public class ProductService {
 
         Product product = Product.create(
                 request.brandId(),
+                userId,
                 request.name(),
                 request.description(),
                 request.price(),
                 request.status()
         );
+
         Product saved = productRepository.save(product);
-        return new CreateProductResponse(saved.getId());
+        return CreateProductResponse.builder()
+                .productId(saved.getId())
+                .build();
     }
 }

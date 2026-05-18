@@ -1,11 +1,12 @@
 package com.mist.commerce.domain.product.entity;
 
 public enum ProductStatus {
-    DRAFT,
-    ACTIVE,
-    INACTIVE;
+    READY,
+    ON_SALE,
+    SOLD_OUT,
+    STOPPED;
 
     public boolean isCreatable() {
-        return this == DRAFT || this == ACTIVE;
+        return this == READY;
     }
 }

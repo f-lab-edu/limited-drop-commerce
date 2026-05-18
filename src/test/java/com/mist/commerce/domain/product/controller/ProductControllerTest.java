@@ -69,7 +69,7 @@ class ProductControllerTest {
                                   "name": "Limited Sneakers",
                                   "description": "2026 한정판",
                                   "price": 150000,
-                                  "status": "DRAFT"
+                                  "status": "READY"
                                 }
                                 """))
                 .andExpect(status().isCreated())
@@ -126,7 +126,7 @@ class ProductControllerTest {
                                   "brandId": 1,
                                   "description": "2026 한정판",
                                   "price": 150000,
-                                  "status": "DRAFT"
+                                  "status": "READY"
                                 }
                                 """))
                 .andExpect(status().isBadRequest())
@@ -152,7 +152,7 @@ class ProductControllerTest {
                                   "name": "Limited Sneakers",
                                   "description": "2026 한정판",
                                   "price": -1,
-                                  "status": "DRAFT"
+                                  "status": "READY"
                                 }
                                 """))
                 .andExpect(status().isBadRequest())
@@ -207,7 +207,7 @@ class ProductControllerTest {
                                   "name": "Limited Sneakers",
                                   "description": "2026 한정판",
                                   "price": 150000,
-                                  "status": "DRAFT"
+                                  "status": "READY"
                                 }
                                 """))
                 .andExpect(status().isNotFound())
@@ -234,7 +234,7 @@ class ProductControllerTest {
                                   "brandId": 1,
                                   "name": "Limited Sneakers",
                                   "price": 150000,
-                                  "status": "ACTIVE"
+                                  "status": "ON_SALE"
                                 }
                                 """))
                 .andExpect(status().isCreated())
@@ -262,7 +262,7 @@ class ProductControllerTest {
                   "name": "Limited Sneakers",
                   "description": "2026 한정판",
                   "price": 150000,
-                  "status": "DRAFT"
+                  "status": "READY"
                 }
                 """;
     }

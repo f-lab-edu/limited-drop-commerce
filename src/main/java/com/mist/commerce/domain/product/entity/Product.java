@@ -9,12 +9,16 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
 @Getter
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Builder(toBuilder = true)
 public class Product extends BaseTimeEntity {
 
     @Id
@@ -24,6 +28,9 @@ public class Product extends BaseTimeEntity {
 
     @Column(name = "brand_id", nullable = false)
     private Long brandId;
+
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
 
     @Column(nullable = false)
     private String name;
@@ -39,25 +46,30 @@ public class Product extends BaseTimeEntity {
 
     public static Product create(
             Long brandId,
+            Long userId,
             String name,
             String description,
             Long price,
             ProductStatus status
     ) {
-        validate(brandId, name, price, status);
+        validate(brandId, userId, name, price, status);
 
-        Product product = new Product();
-        product.brandId = brandId;
-        product.name = name;
-        product.description = description;
-        product.price = price;
-        product.status = status;
-        return product;
+        return Product.builder()
+                .brandId(brandId)
+                .userId(userId)
+                .name(name)
+                .description(description)
+                .price(price)
+                .status(status)
+                .build();
     }
 
-    private static void validate(Long brandId, String name, Long price, ProductStatus status) {
+    private static void validate(Long brandId, Long userId, String name, Long price, ProductStatus status) {
         if (brandId == null) {
             throw new IllegalArgumentException("brandId must not be null");
+        }
+        if (userId == null) {
+            throw new IllegalArgumentException("userId must not be null");
         }
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("name must not be blank");

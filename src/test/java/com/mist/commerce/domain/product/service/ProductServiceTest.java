@@ -48,8 +48,8 @@ class ProductServiceTest {
     @Test
     @DisplayName("존재하는 브랜드와 유효한 요청으로 상품을 등록하면 상품 ID를 반환한다")
     void createProduct_withValidRequest_returnsProductIdAndSavesOnce() {
-        CreateProductRequest request = validRequest(BRAND_ID, ProductStatus.DRAFT, "2026 한정판");
-        Product savedProduct = Product.create(BRAND_ID, request.name(), request.description(), request.price(), request.status());
+        CreateProductRequest request = validRequest(BRAND_ID, ProductStatus.READY, "2026 한정판");
+        Product savedProduct = Product.create(BRAND_ID, USER_ID, request.name(), request.description(), request.price(), request.status());
         ReflectionTestUtils.setField(savedProduct, "id", 100L);
         given(brandRepository.existsById(BRAND_ID)).willReturn(true);
         given(productRepository.save(any(Product.class))).willReturn(savedProduct);
@@ -71,7 +71,7 @@ class ProductServiceTest {
     @DisplayName("존재하지 않는 브랜드 ID로 상품 등록을 요청하면 BrandNotFoundException이 발생한다")
     void createProduct_whenBrandDoesNotExist_throwsBrandNotFoundException() {
         Long missingBrandId = 999_999L;
-        CreateProductRequest request = validRequest(missingBrandId, ProductStatus.DRAFT, "2026 한정판");
+        CreateProductRequest request = validRequest(missingBrandId, ProductStatus.READY, "2026 한정판");
         given(brandRepository.existsById(missingBrandId)).willReturn(false);
 
         assertThatThrownBy(() -> productService.createProduct(USER_ID, request))
