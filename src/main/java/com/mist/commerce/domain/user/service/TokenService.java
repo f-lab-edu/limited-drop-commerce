@@ -7,11 +7,15 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import io.micrometer.common.util.StringUtils;
+import io.netty.util.internal.StringUtil;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.util.Date;
+import java.util.Objects;
 import java.util.UUID;
 import javax.crypto.SecretKey;
+import org.springframework.boot.webmvc.autoconfigure.WebMvcProperties.Apiversion.Use;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -30,7 +34,7 @@ public class TokenService {
     }
 
     public String generateAccessToken(Long userId, String userType, String status) {
-        if (userId == null) {
+        if (Objects.isNull(userId)) {
             throw new IllegalArgumentException("userId must not be null");
         }
 
@@ -53,7 +57,7 @@ public class TokenService {
     }
 
     public boolean validateToken(String token) {
-        if (token == null || token.isBlank()) {
+        if (token.isBlank()) {
             return false;
         }
 
@@ -69,12 +73,12 @@ public class TokenService {
         try {
             Claims claims = parseClaims(token);
             Number userId = claims.get("userId", Number.class);
-            if (userId == null) {
-                throw new InvalidTokenException();
+            if (Objects.isNull(userId)) {
+                throw new InvalidTokenException("Token does not contain userId claim");
             }
             return userId.longValue();
         } catch (JwtException | IllegalArgumentException e) {
-            throw new InvalidTokenException();
+            throw new InvalidTokenException(e);
         }
     }
 
@@ -82,12 +86,9 @@ public class TokenService {
         try {
             Claims claims = parseClaims(token);
             String userType = claims.get("userType", String.class);
-            if (userType == null || userType.isBlank()) {
-                return UserType.USER.name();
-            }
-            return userType;
+            return StringUtils.isBlank(userType) ? UserType.USER.name() : userType;
         } catch (JwtException | IllegalArgumentException e) {
-            throw new InvalidTokenException();
+            throw new InvalidTokenException(e);
         }
     }
 

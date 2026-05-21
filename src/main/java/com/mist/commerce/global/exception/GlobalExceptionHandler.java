@@ -1,7 +1,6 @@
 package com.mist.commerce.global.exception;
 
 import com.mist.commerce.domain.brand.exception.BrandNotFoundException;
-import com.mist.commerce.domain.product.exception.ProductNotFoundException;
 import com.mist.commerce.domain.user.exception.InvalidTokenException;
 import com.mist.commerce.domain.user.exception.OAuthAccountAlreadyLinkedToBusinessException;
 import com.mist.commerce.domain.user.exception.UserEmailDuplicatedException;
@@ -10,9 +9,7 @@ import com.mist.commerce.domain.brand.exception.BrandRegistrationForbiddenExcept
 import com.mist.commerce.global.response.ApiResponse;
 import com.mist.commerce.global.response.ErrorDetail;
 import java.time.Clock;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

@@ -1,6 +1,7 @@
 package com.mist.commerce.domain.product.entity;
 
 import com.mist.commerce.global.entity.BaseTimeEntity;
+import io.jsonwebtoken.lang.Assert;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -65,20 +66,8 @@ public class Product extends BaseTimeEntity {
     }
 
     private static void validate(Long brandId, Long userId, String name, Long price, ProductStatus status) {
-        if (brandId == null) {
-            throw new IllegalArgumentException("brandId must not be null");
-        }
-        if (userId == null) {
-            throw new IllegalArgumentException("userId must not be null");
-        }
-        if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException("name must not be blank");
-        }
-        if (price == null || price < 0) {
-            throw new IllegalArgumentException("price must be greater than or equal to 0");
-        }
-        if (status == null || !status.isCreatable()) {
-            throw new IllegalArgumentException("status must be DRAFT or ACTIVE");
-        }
+        Assert.hasText(name, "name must not be empty");
+        Assert.isTrue(price >= 0, "price must be greater than or equal to 0");
+        Assert.isTrue(status.isCreatable(), "status must be DRAFT or ACTIVE");
     }
 }
