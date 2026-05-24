@@ -276,3 +276,6 @@ test-case*.md
 .cursorrules
 .windsurfrules
 GEMINI.md
+
+*.md
+*.sh
