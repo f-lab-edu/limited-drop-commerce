@@ -1,9 +1,10 @@
 package com.mist.commerce.domain.event.dto;
 
-import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.List;
+import lombok.Builder;
 
+@Builder
 public record EventCreateResponse(
         Long eventId,
         String status,

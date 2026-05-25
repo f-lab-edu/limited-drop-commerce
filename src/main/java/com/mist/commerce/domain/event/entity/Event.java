@@ -80,4 +80,9 @@ public class Event extends BaseTimeEntity {
         }
         this.status = EventStatus.OPEN;
     }
+
+    public String getEventStatusName() {
+        return status.name();
+    }
+
 }

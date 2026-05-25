@@ -28,6 +28,7 @@ public class EventService {
     public EventCreateResponse create(Long userId, EventCreateRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EventRegistrationForbiddenException(userId));
+
         eventRegistrationPolicy.validate(user, request);
 
         List<EventItem> items = request.items()
@@ -45,17 +46,18 @@ public class EventService {
 
         Event saved = dropEventRepository.save(event);
 
-        return new EventCreateResponse(
-                saved.getId(),
-                saved.getStatus().name(),
-                saved.getItems()
+        return EventCreateResponse
+                .builder()
+                .eventId(saved.getId())
+                .status(saved.getEventStatusName())
+                .items(saved.getItems()
                         .stream()
                         .map(item -> new EventCreateResponse.ResponseItem(item.getId(), item.getProductId()))
-                        .toList(),
-                saved.getCreatedAt()
+                        .toList())
+                .createdAt(saved.getCreatedAt()
                         .atZone(ZoneId.of("Asia/Seoul"))
-                        .toOffsetDateTime()
-        );
+                        .toOffsetDateTime())
+                .build();
     }
 
     private EventItem toEventItem(EventCreateRequest.Item item) {
