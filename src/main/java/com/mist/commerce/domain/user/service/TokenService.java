@@ -1,21 +1,19 @@
 package com.mist.commerce.domain.user.service;
 
-import com.mist.commerce.domain.user.exception.InvalidTokenException;
 import com.mist.commerce.domain.user.entity.UserType;
+import com.mist.commerce.domain.user.exception.InvalidTokenException;
 import com.mist.commerce.global.config.JwtProperties;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import io.micrometer.common.util.StringUtils;
-import io.netty.util.internal.StringUtil;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.util.Date;
 import java.util.Objects;
 import java.util.UUID;
 import javax.crypto.SecretKey;
-import org.springframework.boot.webmvc.autoconfigure.WebMvcProperties.Apiversion.Use;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -57,7 +55,7 @@ public class TokenService {
     }
 
     public boolean validateToken(String token) {
-        if (token.isBlank()) {
+        if (StringUtils.isBlank(token)) {
             return false;
         }
 
