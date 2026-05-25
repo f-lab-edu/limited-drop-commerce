@@ -17,7 +17,7 @@ import com.mist.commerce.domain.brand.dto.BrandCreateResponse;
 import com.mist.commerce.domain.brand.exception.BrandNameDuplicatedException;
 import com.mist.commerce.domain.brand.exception.BrandRegistrationForbiddenException;
 import com.mist.commerce.domain.brand.service.BrandService;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.Collections;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -55,7 +55,7 @@ class BrandControllerTest {
                 "Mist",
                 "desc",
                 7L,
-                LocalDateTime.parse("2026-05-14T00:00:00")
+                OffsetDateTime.parse("2026-05-14T00:00:00+09:00")
         );
         given(brandService.create(eq(1L), any(BrandCreateRequest.class))).willReturn(response);
 

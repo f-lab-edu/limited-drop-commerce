@@ -1,13 +1,12 @@
 package com.mist.commerce.domain.brand.dto;
 
-import java.time.Instant;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 public record BrandCreateResponse(
         Long brandId,
         String name,
         String description,
         Long companyId,
-        LocalDateTime createdAt
+        OffsetDateTime createdAt
 ) {
 }

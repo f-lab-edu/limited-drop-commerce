@@ -18,7 +18,8 @@ import com.mist.commerce.domain.brand.policy.BrandRegistrationPolicy;
 import com.mist.commerce.domain.brand.repository.BrandRepository;
 import com.mist.commerce.domain.user.entity.User;
 import com.mist.commerce.domain.user.repository.UserRepository;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -32,6 +33,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class BrandServiceTest {
+
+    private static final ZoneId SEOUL_ZONE = ZoneId.of("Asia/Seoul");
 
     @Mock
     private UserRepository userRepository;
@@ -56,7 +59,7 @@ class BrandServiceTest {
     @DisplayName("정책이 회사 ID를 해석하고 이름이 사용 가능하면 Brand를 저장하고 응답을 반환한다")
     void create_whenPolicyAllows_persistsBrandAndReturnsResponse() {
         BrandCreateRequest request = new BrandCreateRequest("Mist", "desc");
-        LocalDateTime savedCreatedAt = LocalDateTime.parse("2026-05-14T10:30:00");
+        Instant savedCreatedAt = Instant.parse("2026-05-14T10:30:00Z");
         given(userRepository.findById(1L)).willReturn(Optional.of(user));
         given(brandRegistrationPolicy.resolveTargetCompanyId(user, 1L)).willReturn(7L);
         Brand savedBrand = Brand.create(7L, "Mist", "desc");
@@ -70,7 +73,7 @@ class BrandServiceTest {
         assertThat(response.name()).isEqualTo("Mist");
         assertThat(response.description()).isEqualTo("desc");
         assertThat(response.companyId()).isEqualTo(7L);
-        assertThat(response.createdAt()).isEqualTo(savedCreatedAt);
+        assertThat(response.createdAt()).isEqualTo(savedCreatedAt.atZone(SEOUL_ZONE).toOffsetDateTime());
 
         verify(brandRegistrationPolicy).ensureNameAvailable(7L, "Mist");
         ArgumentCaptor<Brand> brandCaptor = ArgumentCaptor.forClass(Brand.class);
@@ -150,7 +153,7 @@ class BrandServiceTest {
     @DisplayName("Brand 등록 응답의 createdAt은 저장된 Brand의 생성일시와 일치한다")
     void create_returnsCreatedAtFromSavedBrand() {
         BrandCreateRequest request = new BrandCreateRequest("Mist", "desc");
-        LocalDateTime savedCreatedAt = LocalDateTime.parse("2026-05-14T10:30:00");
+        Instant savedCreatedAt = Instant.parse("2026-05-14T10:30:00Z");
         given(userRepository.findById(1L)).willReturn(Optional.of(user));
         given(brandRegistrationPolicy.resolveTargetCompanyId(eq(user), eq(1L))).willReturn(7L);
         Brand savedBrand = Brand.create(7L, "Mist", "desc");
@@ -160,6 +163,6 @@ class BrandServiceTest {
 
         BrandCreateResponse response = service.create(1L, request);
 
-        assertThat(response.createdAt()).isEqualTo(savedCreatedAt);
+        assertThat(response.createdAt()).isEqualTo(savedCreatedAt.atZone(SEOUL_ZONE).toOffsetDateTime());
     }
 }
