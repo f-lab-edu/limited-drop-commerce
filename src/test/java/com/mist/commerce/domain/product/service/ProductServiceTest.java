@@ -15,6 +15,7 @@ import com.mist.commerce.domain.product.entity.ProductStatus;
 import com.mist.commerce.domain.brand.exception.BrandNotFoundException;
 import com.mist.commerce.domain.brand.repository.BrandRepository;
 import com.mist.commerce.domain.product.repository.ProductRepository;
+import com.mist.commerce.domain.user.repository.UserRepository;
 import java.lang.reflect.Method;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -38,11 +39,14 @@ class ProductServiceTest {
     @Mock
     private BrandRepository brandRepository;
 
+    @Mock
+    private UserRepository userRepository;
+
     private ProductService productService;
 
     @BeforeEach
     void setUp() {
-        productService = new ProductService(productRepository, brandRepository);
+        productService = new ProductService(productRepository, brandRepository, userRepository);
     }
 
     @Test
