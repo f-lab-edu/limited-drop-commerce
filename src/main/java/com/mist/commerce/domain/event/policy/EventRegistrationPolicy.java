@@ -12,7 +12,6 @@ import com.mist.commerce.domain.product.entity.Product;
 import com.mist.commerce.domain.product.exception.ProductNotFoundException;
 import com.mist.commerce.domain.product.repository.ProductRepository;
 import com.mist.commerce.domain.user.entity.User;
-import com.mist.commerce.domain.user.entity.UserType;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
@@ -28,15 +27,7 @@ public class EventRegistrationPolicy {
     private final ProductRepository productRepository;
 
     public void validate(User user, EventCreateRequest request) {
-        if (user.getUserType() != UserType.COMPANY) {
-            throw new EventRegistrationForbiddenException(user.getId());
-        }
-
         Company company = user.getCompany();
-        if (company == null) {
-            throw new EventRegistrationForbiddenException(user.getId());
-        }
-
         Brand brand = brandRepository.findById(request.brandId())
                 .orElseThrow(() -> new BrandNotFoundException(user.getId()));
 
