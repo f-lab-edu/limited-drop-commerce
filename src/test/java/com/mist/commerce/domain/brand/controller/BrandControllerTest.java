@@ -17,25 +17,27 @@ import com.mist.commerce.domain.brand.dto.BrandCreateResponse;
 import com.mist.commerce.domain.brand.exception.BrandNameDuplicatedException;
 import com.mist.commerce.domain.brand.exception.BrandRegistrationForbiddenException;
 import com.mist.commerce.domain.brand.service.BrandService;
+import com.mist.commerce.support.MySqlContainerTestSupport;
 import java.time.OffsetDateTime;
 import java.util.Collections;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import tools.jackson.databind.ObjectMapper;
 
-@SpringBootTest(classes = {CommerceApplication.class, BrandController.class, BrandControllerTest.MockMvcTestConfig.class})
-class BrandControllerTest {
+@SpringBootTest(classes = {CommerceApplication.class, BrandController.class,
+        BrandControllerTest.MockMvcTestConfig.class})
+class BrandControllerTest extends MySqlContainerTestSupport {
 
     @MockitoBean
     private BrandService brandService;
@@ -45,6 +47,10 @@ class BrandControllerTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    private static RequestPostProcessor authAs(Long userId) {
+        return authentication(new UsernamePasswordAuthenticationToken(userId, null, Collections.emptyList()));
+    }
 
     @Test
     @DisplayName("인증된 기업 사용자가 유효한 본문으로 등록하면 201과 브랜드 응답이 반환된다")
@@ -146,10 +152,6 @@ class BrandControllerTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("BRAND_NAME_DUPLICATED"))
                 .andExpect(jsonPath("$.success").value(false));
-    }
-
-    private static RequestPostProcessor authAs(Long userId) {
-        return authentication(new UsernamePasswordAuthenticationToken(userId, null, Collections.emptyList()));
     }
 
     @TestConfiguration

@@ -44,7 +44,7 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/login/**", "/oauth2/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/products", "/api/v1/events", "/api/v1/brands")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/products", "/api/v1/events")
                         .hasAuthority("ROLE_COMPANY")
                         .requestMatchers(HttpMethod.GET, "/api/v1/products/**").permitAll()
                         .requestMatchers("/api/v1/orders/**", "/api/v1/reservations/**").authenticated()

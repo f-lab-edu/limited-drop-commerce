@@ -54,7 +54,7 @@ public class EventRegistrationPolicy {
         // 자기 값만 보고 판단할 수 없기 때문에 서비스 규칙
         Instant now = clock.instant();
         if (!request.startAt().isAfter(now)) {
-            throw new EventScheduleValidationException("startAt must be in the future");
+            throw new EventScheduleValidationException();
         }
     }
 }

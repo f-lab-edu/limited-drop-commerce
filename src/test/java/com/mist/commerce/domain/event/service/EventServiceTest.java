@@ -16,8 +16,8 @@ import com.mist.commerce.domain.event.entity.EventItem;
 import com.mist.commerce.domain.event.entity.EventItemOptionStock;
 import com.mist.commerce.domain.event.entity.EventStatus;
 import com.mist.commerce.domain.event.entity.EventType;
-import com.mist.commerce.domain.event.exception.EventScheduleValidationException;
 import com.mist.commerce.domain.event.exception.EventRegistrationForbiddenException;
+import com.mist.commerce.domain.event.exception.EventScheduleValidationException;
 import com.mist.commerce.domain.event.policy.EventRegistrationPolicy;
 import com.mist.commerce.domain.event.repository.EventRepository;
 import com.mist.commerce.domain.product.exception.ProductNotFoundException;
@@ -126,7 +126,8 @@ class EventServiceTest {
     void create_passesAuthenticatedUserAndRequestValuesToPolicy() {
         EventCreateRequest request = request(List.of(item(10L), item(11L)));
         given(userRepository.findById(1L)).willReturn(Optional.of(user));
-        given(dropEventRepository.save(any(Event.class))).willReturn(savedEvent(42L, Instant.now(), savedItem(101L, 10L)));
+        given(dropEventRepository.save(any(Event.class))).willReturn(
+                savedEvent(42L, Instant.now(), savedItem(101L, 10L)));
 
         service.create(1L, request);
 
@@ -181,7 +182,7 @@ class EventServiceTest {
     void create_whenPolicyThrowsScheduleValidation_propagatesAndDoesNotSave() {
         EventCreateRequest request = request(List.of(item(10L)));
         given(userRepository.findById(1L)).willReturn(Optional.of(user));
-        willThrow(new EventScheduleValidationException("startAt must be future"))
+        willThrow(new EventScheduleValidationException())
                 .given(eventRegistrationPolicy).validate(user, request);
 
         assertThatThrownBy(() -> service.create(1L, request))
@@ -194,7 +195,8 @@ class EventServiceTest {
     void create_ignoresClientEventTypeBecauseServerFixesLimitedDrop() {
         EventCreateRequest request = request(List.of(item(10L)));
         given(userRepository.findById(1L)).willReturn(Optional.of(user));
-        given(dropEventRepository.save(any(Event.class))).willReturn(savedEvent(42L, Instant.now(), savedItem(101L, 10L)));
+        given(dropEventRepository.save(any(Event.class))).willReturn(
+                savedEvent(42L, Instant.now(), savedItem(101L, 10L)));
 
         service.create(1L, request);
 

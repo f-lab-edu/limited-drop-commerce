@@ -19,12 +19,12 @@ import com.mist.commerce.domain.event.exception.EventRegistrationForbiddenExcept
 import com.mist.commerce.domain.event.exception.EventScheduleValidationException;
 import com.mist.commerce.domain.event.service.EventService;
 import com.mist.commerce.domain.product.exception.ProductNotFoundException;
+import com.mist.commerce.support.MySqlContainerTestSupport;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -35,6 +35,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
@@ -47,7 +48,7 @@ import tools.jackson.databind.ObjectMapper;
         EventController.class,
         EventControllerTest.MockMvcTestConfig.class
 })
-class EventControllerTest {
+class EventControllerTest extends MySqlContainerTestSupport {
 
     private static final Instant START_AT = Instant.parse("2026-06-01T10:00:00Z");
     private static final Instant END_AT = Instant.parse("2026-06-01T12:00:00Z");
@@ -61,8 +62,9 @@ class EventControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    private static RequestPostProcessor authAs(Long userId) {
-        return authentication(new UsernamePasswordAuthenticationToken(userId, null, Collections.emptyList()));
+    private static RequestPostProcessor authAs(Long userId, String authority) {
+        return authentication(
+                new UsernamePasswordAuthenticationToken(userId, null, List.of(new SimpleGrantedAuthority(authority))));
     }
 
     @Test
@@ -77,8 +79,8 @@ class EventControllerTest {
         );
         given(dropEventService.create(eq(1L), any(EventCreateRequest.class))).willReturn(response);
 
-        mockMvc.perform(post("/api/v1/admin/events")
-                        .with(authAs(1L))
+        mockMvc.perform(post("/api/v1/events")
+                        .with(authAs(1L, "ROLE_COMPANY"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -96,7 +98,7 @@ class EventControllerTest {
     @Test
     @DisplayName("인증 없이 요청하면 401을 반환하고 서비스를 호출하지 않는다")
     void create_withoutAuthentication_returns401AndDoesNotCallService() throws Exception {
-        mockMvc.perform(post("/api/v1/admin/events")
+        mockMvc.perform(post("/api/v1/events")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest())))
                 .andExpect(status().isUnauthorized());
@@ -115,8 +117,8 @@ class EventControllerTest {
                 List.of(validItem())
         );
 
-        mockMvc.perform(post("/api/v1/admin/events")
-                        .with(authAs(1L))
+        mockMvc.perform(post("/api/v1/events")
+                        .with(authAs(1L, "ROLE_COMPANY"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
@@ -132,8 +134,8 @@ class EventControllerTest {
     void create_withEmptyItems_returns400ValidationErrorWithErrors() throws Exception {
         EventCreateRequest request = new EventCreateRequest(1L, "한정 스니커즈 드롭", START_AT, END_AT, List.of());
 
-        mockMvc.perform(post("/api/v1/admin/events")
-                        .with(authAs(1L))
+        mockMvc.perform(post("/api/v1/events")
+                        .with(authAs(1L, "ROLE_COMPANY"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
@@ -154,8 +156,8 @@ class EventControllerTest {
                 List.of(validOptionStock())
         );
 
-        mockMvc.perform(post("/api/v1/admin/events")
-                        .with(authAs(1L))
+        mockMvc.perform(post("/api/v1/events")
+                        .with(authAs(1L, "ROLE_COMPANY"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request(List.of(invalidItem)))))
                 .andExpect(status().isBadRequest())
@@ -176,8 +178,8 @@ class EventControllerTest {
                 List.of(invalidStock)
         );
 
-        mockMvc.perform(post("/api/v1/admin/events")
-                        .with(authAs(1L))
+        mockMvc.perform(post("/api/v1/events")
+                        .with(authAs(1L, "ROLE_COMPANY"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request(List.of(invalidItem)))))
                 .andExpect(status().isBadRequest())
@@ -197,8 +199,8 @@ class EventControllerTest {
                 List.of(validOptionStock())
         );
 
-        mockMvc.perform(post("/api/v1/admin/events")
-                        .with(authAs(1L))
+        mockMvc.perform(post("/api/v1/events")
+                        .with(authAs(1L, "ROLE_COMPANY"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request(List.of(invalidItem)))))
                 .andExpect(status().isBadRequest())
@@ -218,8 +220,8 @@ class EventControllerTest {
                 List.of(validOptionStock())
         );
 
-        mockMvc.perform(post("/api/v1/admin/events")
-                        .with(authAs(1L))
+        mockMvc.perform(post("/api/v1/events")
+                        .with(authAs(1L, "ROLE_COMPANY"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request(List.of(invalidItem)))))
                 .andExpect(status().isBadRequest())
@@ -240,8 +242,8 @@ class EventControllerTest {
                 List.of(validItem())
         );
 
-        mockMvc.perform(post("/api/v1/admin/events")
-                        .with(authAs(1L))
+        mockMvc.perform(post("/api/v1/events")
+                        .with(authAs(1L, "ROLE_COMPANY"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
@@ -257,8 +259,8 @@ class EventControllerTest {
         given(dropEventService.create(eq(1L), any(EventCreateRequest.class)))
                 .willThrow(new EventRegistrationForbiddenException(1L));
 
-        mockMvc.perform(post("/api/v1/admin/events")
-                        .with(authAs(1L))
+        mockMvc.perform(post("/api/v1/events")
+                        .with(authAs(1L, "ROLE_COMPANY"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest())))
                 .andExpect(status().isForbidden())
@@ -274,8 +276,8 @@ class EventControllerTest {
         given(dropEventService.create(eq(1L), any(EventCreateRequest.class)))
                 .willThrow(new ProductNotFoundException(10L));
 
-        mockMvc.perform(post("/api/v1/admin/events")
-                        .with(authAs(1L))
+        mockMvc.perform(post("/api/v1/events")
+                        .with(authAs(1L, "ROLE_COMPANY"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest())))
                 .andExpect(status().isNotFound())
@@ -289,15 +291,15 @@ class EventControllerTest {
     @DisplayName("서비스가 일정 검증 예외를 던지면 400 VALIDATION_ERROR와 errors null을 반환한다")
     void create_whenServiceThrowsScheduleValidation_returns400ValidationErrorWithoutErrors() throws Exception {
         given(dropEventService.create(eq(1L), any(EventCreateRequest.class)))
-                .willThrow(new EventScheduleValidationException("startAt must be future"));
+                .willThrow(new EventScheduleValidationException());
 
-        mockMvc.perform(post("/api/v1/admin/events")
-                        .with(authAs(1L))
+        mockMvc.perform(post("/api/v1/events")
+                        .with(authAs(1L, "ROLE_COMPANY"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest())))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.code").value("EVENT_SCHEDULE_VALIDATION_ERROR"))
                 .andExpect(jsonPath("$.data").value(nullValue()))
                 .andExpect(jsonPath("$.errors").exists());
     }

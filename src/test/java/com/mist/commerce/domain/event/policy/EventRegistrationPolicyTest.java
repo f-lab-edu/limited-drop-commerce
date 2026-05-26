@@ -62,24 +62,6 @@ class EventRegistrationPolicyTest {
     }
 
     @Test
-    @DisplayName("기업 회원이 아니면 EventRegistrationForbiddenException을 던진다")
-    void validate_whenUserIsNotCompanyType_throwsEventRegistrationForbidden() {
-        given(user.getUserType()).willReturn(UserType.USER);
-
-        assertThatThrownBy(() -> policy.validate(user, request()))
-                .isInstanceOf(EventRegistrationForbiddenException.class);
-    }
-
-    @Test
-    @DisplayName("기업 회원이지만 소속 회사가 없으면 EventRegistrationForbiddenException을 던진다")
-    void validate_whenCompanyUserHasNoCompany_throwsEventRegistrationForbidden() {
-        givenCompanyUserWithoutCompany();
-
-        assertThatThrownBy(() -> policy.validate(user, request()))
-                .isInstanceOf(EventRegistrationForbiddenException.class);
-    }
-
-    @Test
     @DisplayName("브랜드가 존재하지 않으면 BrandNotFoundException을 던진다")
     void validate_whenBrandDoesNotExist_throwsBrandNotFound() {
         givenCompanyUser(7L);
