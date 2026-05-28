@@ -1,6 +1,7 @@
 package com.mist.commerce.domain.product.entity;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.mist.commerce.domain.product.dto.CreateProductRequest;
@@ -67,11 +68,16 @@ class ProductTest {
     }
 
     @Test
-    @DisplayName("브랜드 ID가 null이면 상품 생성에 실패한다")
-    void create_whenBrandIdIsNull_throwsIllegalArgumentException() {
-        assertThatThrownBy(() -> Product.create(null, USER_ID, NAME, DESCRIPTION, PRICE, ProductStatus.READY))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("brandId");
+    @DisplayName("브랜드 ID가 null이어도 상품을 생성할 수 있다")
+    void create_whenBrandIdIsNull_returnsProductWithNullBrandId() {
+        assertThatCode(() -> {
+            Product product = Product.create(null, USER_ID, NAME, DESCRIPTION, PRICE, ProductStatus.READY);
+
+            assertThat(product.getBrandId()).isNull();
+            assertThat(product.getName()).isEqualTo(NAME);
+            assertThat(product.getPrice()).isEqualTo(PRICE);
+            assertThat(product.getStatus()).isEqualTo(ProductStatus.READY);
+        }).doesNotThrowAnyException();
     }
 
     @Test

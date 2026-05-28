@@ -9,6 +9,7 @@ import com.mist.commerce.domain.brand.policy.BrandRegistrationPolicy;
 import com.mist.commerce.domain.brand.repository.BrandRepository;
 import com.mist.commerce.domain.user.entity.User;
 import com.mist.commerce.domain.user.repository.UserRepository;
+import java.time.ZoneId;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -40,6 +41,8 @@ public class BrandService {
                 saved.getDescription(),
                 saved.getCompanyId(),
                 saved.getCreatedAt()
+                        .atZone(ZoneId.of("Asia/Seoul"))
+                        .toOffsetDateTime()
         );
     }
 

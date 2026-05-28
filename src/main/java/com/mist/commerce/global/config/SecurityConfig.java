@@ -16,7 +16,6 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import tools.jackson.databind.ObjectMapper;
 
@@ -45,7 +44,8 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/login/**", "/oauth2/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/products").hasAuthority("ROLE_COMPANY")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/products", "/api/v1/events")
+                        .hasAuthority("ROLE_COMPANY")
                         .requestMatchers(HttpMethod.GET, "/api/v1/products/**").permitAll()
                         .requestMatchers("/api/v1/orders/**", "/api/v1/reservations/**").authenticated()
                         .anyRequest().authenticated()

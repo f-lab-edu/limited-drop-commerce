@@ -66,7 +66,7 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void handle_InvalidTokenException_401_INVALID_TOKEN() {
-        InvalidTokenException ex = new InvalidTokenException();
+        InvalidTokenException ex = new InvalidTokenException("broken token");
 
         ResponseEntity<ApiResponse<Void>> response = handler.handleInvalidToken(ex);
 
