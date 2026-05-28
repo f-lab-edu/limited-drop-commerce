@@ -4,9 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.mist.commerce.domain.product.dto.CreateProductRequest;
+import com.mist.commerce.domain.product.exception.ProductOptionGroupNameDuplicatedException;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
 
 class ProductTest {
 
@@ -99,5 +101,82 @@ class ProductTest {
 
         assertThat(product.getStatus()).isEqualTo(ProductStatus.READY);
         assertThat(product.getBrandId()).isEqualTo(BRAND_ID);
+    }
+
+    @Test
+    @DisplayName("옵션 그룹과 값을 포함해 상품을 생성하면 옵션 그래프가 연결된다")
+    void create_withOptionGroups_returnsProductWithConnectedOptionGraph() {
+        Product product = Product.create(
+                BRAND_ID,
+                USER_ID,
+                NAME,
+                DESCRIPTION,
+                PRICE,
+                ProductStatus.READY,
+                List.of(
+                        new Product.OptionGroupSpec("색상", 0, true, List.of("Black", "White")),
+                        new Product.OptionGroupSpec("사이즈", 1, true, List.of("260", "270"))));
+
+        assertThat(product.getOptionGroups()).hasSize(2);
+        assertThat(product.getOptionGroups())
+                .extracting(ProductOptionGroup::getName)
+                .containsExactly("색상", "사이즈");
+
+        ProductOptionGroup colorGroup = product.getOptionGroups().get(0);
+        ProductOptionGroup sizeGroup = product.getOptionGroups().get(1);
+        assertThat(colorGroup.getProduct()).isSameAs(product);
+        assertThat(sizeGroup.getProduct()).isSameAs(product);
+
+        assertThat(colorGroup.getOptionValues()).hasSize(2);
+        assertThat(colorGroup.getOptionValues())
+                .extracting(ProductOptionValue::getValue)
+                .containsExactly("Black", "White");
+        assertThat(colorGroup.getOptionValues())
+                .allSatisfy(optionValue -> assertThat(optionValue.getOptionGroup()).isSameAs(colorGroup));
+
+        assertThat(sizeGroup.getOptionValues()).hasSize(2);
+        assertThat(sizeGroup.getOptionValues())
+                .extracting(ProductOptionValue::getValue)
+                .containsExactly("260", "270");
+        assertThat(sizeGroup.getOptionValues())
+                .allSatisfy(optionValue -> assertThat(optionValue.getOptionGroup()).isSameAs(sizeGroup));
+    }
+
+    @Test
+    @DisplayName("같은 요청 내 옵션 그룹명이 중복되면 상품 생성에 실패한다")
+    void create_whenOptionGroupNameDuplicated_throwsProductOptionGroupNameDuplicatedException() {
+        assertThatThrownBy(() -> Product.create(
+                BRAND_ID,
+                USER_ID,
+                NAME,
+                DESCRIPTION,
+                PRICE,
+                ProductStatus.READY,
+                List.of(
+                        new Product.OptionGroupSpec("색상", 0, true, List.of("Black")),
+                        new Product.OptionGroupSpec("색상", 1, true, List.of("White")))))
+                .isInstanceOf(ProductOptionGroupNameDuplicatedException.class)
+                .satisfies(exception -> {
+                    assertThat(((ProductOptionGroupNameDuplicatedException) exception).getCode())
+                            .isEqualTo("PRODUCT_OPTION_GROUP_NAME_DUPLICATED");
+                    assertThat(((ProductOptionGroupNameDuplicatedException) exception).getHttpStatus())
+                            .isEqualTo(HttpStatus.CONFLICT);
+                });
+    }
+
+    @Test
+    @DisplayName("옵션 없이 상품을 생성하면 옵션 컬렉션은 비어 있다")
+    void create_withoutOptionGroups_returnsProductWithEmptyOptionGroups() {
+        Product product = Product.create(
+                BRAND_ID,
+                USER_ID,
+                NAME,
+                DESCRIPTION,
+                PRICE,
+                ProductStatus.READY,
+                List.of());
+
+        assertThat(product.getOptionGroups()).isNotNull();
+        assertThat(product.getOptionGroups()).isEmpty();
     }
 }

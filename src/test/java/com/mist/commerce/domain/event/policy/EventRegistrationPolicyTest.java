@@ -31,6 +31,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -155,8 +156,9 @@ class EventRegistrationPolicyTest {
     }
 
     private Product product(Long id) {
-        return Product.create(1L, 1L, "Sneakers", "desc", 150000L, ProductStatus.READY)
-                .toBuilder().id(id).build();
+        Product product = Product.create(1L, 1L, "Sneakers", "desc", 150000L, ProductStatus.READY);
+        ReflectionTestUtils.setField(product, "id", id);
+        return product;
     }
 
     private EventCreateRequest.OptionStock optionStock() {
