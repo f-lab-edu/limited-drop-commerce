@@ -23,9 +23,6 @@ public class ProductRegistrationPolicy {
                 .orElseThrow(() -> new UserNotFoundException(userId));
         Brand brand = brandRepository.findById(request.brandId())
                 .orElseThrow(() -> new BrandNotFoundException(request.brandId()));
-        if (brand == null) {
-            throw new BrandNotFoundException(request.brandId());
-        }
 
         if (brand.getCompanyId().equals(user.getCompanyId())) {
             throw new BrandAccessDeniedException(brand.getId(), userId);
