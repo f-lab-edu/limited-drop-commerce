@@ -13,6 +13,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.mist.commerce.domain.brand.exception.BrandNotFoundException;
 import com.mist.commerce.domain.product.dto.CreateProductRequest;
 import com.mist.commerce.domain.product.dto.CreateProductResponse;
+import com.mist.commerce.domain.product.exception.ProductOptionGroupNameDuplicatedException;
+import com.mist.commerce.domain.product.exception.ProductOptionValueDuplicatedException;
 import com.mist.commerce.domain.product.service.ProductService;
 import com.mist.commerce.domain.user.service.CustomOAuth2UserService;
 import com.mist.commerce.domain.user.service.TokenService;
@@ -58,7 +60,7 @@ class ProductControllerTest {
     @DisplayName("COMPANY가 유효한 본문으로 상품을 등록하면 생성 응답을 반환한다")
     void createProduct_withCompanyAndValidBody_returnsCreatedResponse() throws Exception {
         given(productService.createProduct(eq(10L), any(CreateProductRequest.class)))
-                .willReturn(new CreateProductResponse(100L));
+                .willReturn(new CreateProductResponse(100L, List.of()));
 
         mockMvc.perform(post("/api/v1/products")
                         .with(authentication(authenticatedUser("ROLE_COMPANY")))
@@ -77,7 +79,215 @@ class ProductControllerTest {
                 .andExpect(jsonPath("$.code").value("OK"))
                 .andExpect(jsonPath("$.message").exists())
                 .andExpect(jsonPath("$.data.productId").value(100))
+                .andExpect(jsonPath("$.data.optionGroupIds.length()").value(0))
                 .andExpect(jsonPath("$.errors").doesNotExist())
+                .andExpect(jsonPath("$.timestamp").exists());
+        verify(productService).createProduct(eq(10L), any(CreateProductRequest.class));
+    }
+
+    @Test
+    @DisplayName("COMPANY가 옵션을 포함해 상품을 등록하면 옵션 그룹 ID 목록을 반환한다")
+    void createProduct_withOptionGroups_returnsCreatedResponseWithOptionGroupIds() throws Exception {
+        given(productService.createProduct(eq(10L), any(CreateProductRequest.class)))
+                .willReturn(new CreateProductResponse(100L, List.of(1000L, 1001L)));
+
+        mockMvc.perform(post("/api/v1/products")
+                        .with(authentication(authenticatedUser("ROLE_COMPANY")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validBodyWithOptions()))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.code").value("OK"))
+                .andExpect(jsonPath("$.message").exists())
+                .andExpect(jsonPath("$.data.productId").value(100))
+                .andExpect(jsonPath("$.data.optionGroupIds.length()").value(2))
+                .andExpect(jsonPath("$.data.optionGroupIds[0]").value(1000))
+                .andExpect(jsonPath("$.data.optionGroupIds[1]").value(1001))
+                .andExpect(jsonPath("$.errors").doesNotExist())
+                .andExpect(jsonPath("$.timestamp").exists());
+        verify(productService).createProduct(eq(10L), any(CreateProductRequest.class));
+    }
+
+    @Test
+    @DisplayName("옵션 그룹명이 공백이면 검증 오류를 반환한다")
+    void createProduct_whenOptionGroupNameIsBlank_returnsValidationError() throws Exception {
+        mockMvc.perform(post("/api/v1/products")
+                        .with(authentication(authenticatedUser("ROLE_COMPANY")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "brandId": 1,
+                                  "name": "Limited Sneakers",
+                                  "description": "2026 한정판",
+                                  "price": 150000,
+                                  "status": "READY",
+                                  "optionGroups": [
+                                    {
+                                      "name": "   ",
+                                      "displayOrder": 0,
+                                      "required": true,
+                                      "values": [
+                                        { "value": "Black" }
+                                      ]
+                                    }
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.message").value("입력값이 올바르지 않습니다."))
+                .andExpect(jsonPath("$.data").doesNotExist())
+                .andExpect(jsonPath("$.errors").isArray())
+                .andExpect(jsonPath("$.errors[?(@.field == 'optionGroups[0].name')]").exists())
+                .andExpect(jsonPath("$.timestamp").exists());
+        verify(productService, never()).createProduct(any(), any());
+    }
+
+    @Test
+    @DisplayName("옵션 그룹 노출 순서가 음수이면 검증 오류를 반환한다")
+    void createProduct_whenOptionGroupDisplayOrderIsNegative_returnsValidationError() throws Exception {
+        mockMvc.perform(post("/api/v1/products")
+                        .with(authentication(authenticatedUser("ROLE_COMPANY")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "brandId": 1,
+                                  "name": "Limited Sneakers",
+                                  "description": "2026 한정판",
+                                  "price": 150000,
+                                  "status": "READY",
+                                  "optionGroups": [
+                                    {
+                                      "name": "색상",
+                                      "displayOrder": -1,
+                                      "required": true,
+                                      "values": [
+                                        { "value": "Black" }
+                                      ]
+                                    }
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.message").value("입력값이 올바르지 않습니다."))
+                .andExpect(jsonPath("$.data").doesNotExist())
+                .andExpect(jsonPath("$.errors").isArray())
+                .andExpect(jsonPath("$.errors[?(@.field == 'optionGroups[0].displayOrder')]").exists())
+                .andExpect(jsonPath("$.timestamp").exists());
+        verify(productService, never()).createProduct(any(), any());
+    }
+
+    @Test
+    @DisplayName("옵션 값이 공백이면 검증 오류를 반환한다")
+    void createProduct_whenOptionValueIsBlank_returnsValidationError() throws Exception {
+        mockMvc.perform(post("/api/v1/products")
+                        .with(authentication(authenticatedUser("ROLE_COMPANY")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "brandId": 1,
+                                  "name": "Limited Sneakers",
+                                  "description": "2026 한정판",
+                                  "price": 150000,
+                                  "status": "READY",
+                                  "optionGroups": [
+                                    {
+                                      "name": "색상",
+                                      "displayOrder": 0,
+                                      "required": true,
+                                      "values": [
+                                        { "value": "   " }
+                                      ]
+                                    }
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.message").value("입력값이 올바르지 않습니다."))
+                .andExpect(jsonPath("$.data").doesNotExist())
+                .andExpect(jsonPath("$.errors").isArray())
+                .andExpect(jsonPath("$.errors[?(@.field == 'optionGroups[0].values[0].value')]").exists())
+                .andExpect(jsonPath("$.timestamp").exists());
+        verify(productService, never()).createProduct(any(), any());
+    }
+
+    @Test
+    @DisplayName("옵션 값 목록이 비어 있으면 검증 오류를 반환한다")
+    void createProduct_whenOptionValuesAreEmpty_returnsValidationError() throws Exception {
+        mockMvc.perform(post("/api/v1/products")
+                        .with(authentication(authenticatedUser("ROLE_COMPANY")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "brandId": 1,
+                                  "name": "Limited Sneakers",
+                                  "description": "2026 한정판",
+                                  "price": 150000,
+                                  "status": "READY",
+                                  "optionGroups": [
+                                    {
+                                      "name": "색상",
+                                      "displayOrder": 0,
+                                      "required": true,
+                                      "values": []
+                                    }
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.message").value("입력값이 올바르지 않습니다."))
+                .andExpect(jsonPath("$.data").doesNotExist())
+                .andExpect(jsonPath("$.errors").isArray())
+                .andExpect(jsonPath("$.errors[?(@.field == 'optionGroups[0].values')]").exists())
+                .andExpect(jsonPath("$.timestamp").exists());
+        verify(productService, never()).createProduct(any(), any());
+    }
+
+    @Test
+    @DisplayName("옵션 그룹명이 중복되면 중복 오류를 반환한다")
+    void createProduct_whenOptionGroupNameDuplicated_returnsConflict() throws Exception {
+        given(productService.createProduct(eq(10L), any(CreateProductRequest.class)))
+                .willThrow(new ProductOptionGroupNameDuplicatedException("색상"));
+
+        mockMvc.perform(post("/api/v1/products")
+                        .with(authentication(authenticatedUser("ROLE_COMPANY")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validBodyWithOptions()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.code").value("PRODUCT_OPTION_GROUP_NAME_DUPLICATED"))
+                .andExpect(jsonPath("$.message").exists())
+                .andExpect(jsonPath("$.data").doesNotExist())
+                .andExpect(jsonPath("$.errors").isArray())
+                .andExpect(jsonPath("$.errors[?(@.field == 'name')]").exists())
+                .andExpect(jsonPath("$.timestamp").exists());
+        verify(productService).createProduct(eq(10L), any(CreateProductRequest.class));
+    }
+
+    @Test
+    @DisplayName("옵션 값이 중복되면 중복 오류를 반환한다")
+    void createProduct_whenOptionValueDuplicated_returnsConflict() throws Exception {
+        given(productService.createProduct(eq(10L), any(CreateProductRequest.class)))
+                .willThrow(new ProductOptionValueDuplicatedException("Black"));
+
+        mockMvc.perform(post("/api/v1/products")
+                        .with(authentication(authenticatedUser("ROLE_COMPANY")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validBodyWithOptions()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.code").value("PRODUCT_OPTION_VALUE_DUPLICATED"))
+                .andExpect(jsonPath("$.message").exists())
+                .andExpect(jsonPath("$.data").doesNotExist())
+                .andExpect(jsonPath("$.errors").isArray())
+                .andExpect(jsonPath("$.errors[?(@.field == 'value')]").exists())
                 .andExpect(jsonPath("$.timestamp").exists());
         verify(productService).createProduct(eq(10L), any(CreateProductRequest.class));
     }
@@ -224,7 +434,7 @@ class ProductControllerTest {
     @DisplayName("COMPANY가 상품 설명 없이 상품을 등록하면 생성 응답을 반환한다")
     void createProduct_withoutDescription_returnsCreatedResponse() throws Exception {
         given(productService.createProduct(eq(10L), any(CreateProductRequest.class)))
-                .willReturn(new CreateProductResponse(100L));
+                .willReturn(new CreateProductResponse(100L, List.of()));
 
         mockMvc.perform(post("/api/v1/products")
                         .with(authentication(authenticatedUser("ROLE_COMPANY")))
@@ -263,6 +473,38 @@ class ProductControllerTest {
                   "description": "2026 한정판",
                   "price": 150000,
                   "status": "READY"
+                }
+                """;
+    }
+
+    private String validBodyWithOptions() {
+        return """
+                {
+                  "brandId": 1,
+                  "name": "Limited Sneakers",
+                  "description": "2026 한정판",
+                  "price": 150000,
+                  "status": "READY",
+                  "optionGroups": [
+                    {
+                      "name": "색상",
+                      "displayOrder": 0,
+                      "required": true,
+                      "values": [
+                        { "value": "Black" },
+                        { "value": "White" }
+                      ]
+                    },
+                    {
+                      "name": "사이즈",
+                      "displayOrder": 1,
+                      "required": true,
+                      "values": [
+                        { "value": "260" },
+                        { "value": "270" }
+                      ]
+                    }
+                  ]
                 }
                 """;
     }

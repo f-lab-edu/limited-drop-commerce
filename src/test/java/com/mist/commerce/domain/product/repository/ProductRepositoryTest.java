@@ -3,11 +3,12 @@ package com.mist.commerce.domain.product.repository;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.mist.commerce.domain.product.dto.CreateProductRequest;
 import com.mist.commerce.domain.product.entity.Product;
 import com.mist.commerce.domain.product.entity.ProductStatus;
 import com.mist.commerce.global.config.JpaAuditingConfig;
 import com.mist.commerce.support.MySqlContainerTestSupport;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,6 +72,130 @@ class ProductRepositoryTest extends MySqlContainerTestSupport {
 
         assertThat(found.getStatus()).isEqualTo(ProductStatus.READY);
         assertThat(storedStatus).isEqualTo("READY");
+    }
+
+    @Test
+    @DisplayName("옵션 그룹과 값을 포함한 상품을 저장하면 옵션이 cascade 저장되고 FK가 연결된다")
+    void save_withOptionGroupsAndValues_cascadesAndConnectsForeignKeys() {
+        Long brandId = persistBrand();
+        Product product = Product.create(
+                brandId,
+                1L,
+                "Limited Sneakers",
+                "2026 한정판",
+                150_000L,
+                ProductStatus.READY,
+                List.of(
+                        new Product.OptionGroupSpec("색상", 0, true, List.of("Black", "White")),
+                        new Product.OptionGroupSpec("사이즈", 1, true, List.of("260", "270"))));
+
+        Product saved = productRepository.saveAndFlush(product);
+        entityManager.clear();
+
+        List<Map<String, Object>> groups = jdbcTemplate.queryForList(
+                """
+                        select id, name, display_order, case when required then 1 else 0 end as required_value
+                        from product_option_group
+                        where product_id = ?
+                        order by display_order
+                        """,
+                saved.getId());
+        assertThat(groups).hasSize(2);
+        assertThat(groups).extracting(row -> row.get("name")).containsExactly("색상", "사이즈");
+        assertThat(groups).extracting(row -> ((Number) row.get("display_order")).intValue()).containsExactly(0, 1);
+        assertThat(groups).extracting(row -> ((Number) row.get("required_value")).intValue()).containsExactly(1, 1);
+
+        Long colorGroupId = ((Number) groups.get(0).get("id")).longValue();
+        Long sizeGroupId = ((Number) groups.get(1).get("id")).longValue();
+
+        Long valueCount = jdbcTemplate.queryForObject(
+                "select count(*) from product_option_value where option_group_id in (?, ?)",
+                Long.class,
+                colorGroupId,
+                sizeGroupId);
+        assertThat(valueCount).isEqualTo(4L);
+
+        List<String> colorValues = jdbcTemplate.queryForList(
+                "select value from product_option_value where option_group_id = ? order by value",
+                String.class,
+                colorGroupId);
+        List<String> sizeValues = jdbcTemplate.queryForList(
+                "select value from product_option_value where option_group_id = ? order by value",
+                String.class,
+                sizeGroupId);
+        assertThat(colorValues).containsExactly("Black", "White");
+        assertThat(sizeValues).containsExactly("260", "270");
+    }
+
+    @Test
+    @DisplayName("같은 상품 내 동일 옵션 그룹명을 직접 저장하면 유니크 제약 위반이 발생한다")
+    void save_whenSameProductHasDuplicateOptionGroupName_throwsDataIntegrityViolationException() {
+        Product saved = saveProductWithSingleOption("색상", "Black");
+
+        assertThatThrownBy(() -> jdbcTemplate.update(
+                "insert into product_option_group (product_id, name, display_order, required) values (?, ?, ?, ?)",
+                saved.getId(),
+                "색상",
+                1,
+                true))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("같은 그룹 내 동일 옵션 값을 직접 저장하면 유니크 제약 위반이 발생한다")
+    void save_whenSameGroupHasDuplicateOptionValue_throwsDataIntegrityViolationException() {
+        Product saved = saveProductWithSingleOption("색상", "Black");
+        Long groupId = saved.getOptionGroups().get(0).getId();
+
+        assertThatThrownBy(() -> jdbcTemplate.update(
+                "insert into product_option_value (option_group_id, value) values (?, ?)",
+                groupId,
+                "Black"))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("서로 다른 상품이면 같은 옵션 그룹명을 저장할 수 있다")
+    void save_whenDifferentProductsHaveSameOptionGroupName_allowsSameName() {
+        Product first = saveProductWithSingleOption("색상", "Black");
+        Product second = Product.create(
+                first.getBrandId(),
+                2L,
+                "Limited Hoodie",
+                "2026 한정판",
+                90_000L,
+                ProductStatus.READY,
+                List.of(new Product.OptionGroupSpec("색상", 0, true, List.of("White"))));
+
+        Product savedSecond = productRepository.saveAndFlush(second);
+        entityManager.clear();
+
+        Long count = jdbcTemplate.queryForObject(
+                """
+                        select count(*)
+                        from product_option_group
+                        where name = ? and product_id in (?, ?)
+                        """,
+                Long.class,
+                "색상",
+                first.getId(),
+                savedSecond.getId());
+
+        assertThat(count).isEqualTo(2L);
+    }
+
+    private Product saveProductWithSingleOption(String groupName, String value) {
+        Long brandId = persistBrand();
+        Product product = Product.create(
+                brandId,
+                1L,
+                "Limited Sneakers",
+                "2026 한정판",
+                150_000L,
+                ProductStatus.READY,
+                List.of(new Product.OptionGroupSpec(groupName, 0, true, List.of(value))));
+
+        return productRepository.saveAndFlush(product);
     }
 
     private Long persistBrand() {
