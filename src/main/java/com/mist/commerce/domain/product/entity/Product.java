@@ -55,7 +55,6 @@ public class Product extends BaseTimeEntity {
     private ProductStatus status;
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
-    @BatchSize(size = 100)
     @Builder.Default
     private List<ProductOptionGroup> optionGroups = new ArrayList<>();
 

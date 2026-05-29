@@ -56,7 +56,6 @@ public class ProductOptionGroup extends BaseTimeEntity {
     private boolean required;
 
     @OneToMany(mappedBy = "optionGroup", cascade = CascadeType.ALL, orphanRemoval = true)
-    @BatchSize(size = 100)
     private List<ProductOptionValue> optionValues = new ArrayList<>();
 
     private ProductOptionGroup(String name, int displayOrder, boolean required) {
