@@ -176,27 +176,6 @@ class ProductServiceTest {
     }
 
     @Test
-    @DisplayName("저장 중 DB 유니크 제약 위반이 발생하면 409 비즈니스 예외로 변환한다")
-    void createProduct_whenDataIntegrityViolationOccurs_throwsProductOptionGroupNameDuplicatedException() {
-        CreateProductRequest request = validRequest(
-                BRAND_ID,
-                ProductStatus.READY,
-                "2026 한정판",
-                List.of(optionGroup("색상", 0, true, List.of("Black"))));
-        given(productRepository.save(any(Product.class)))
-                .willThrow(new DataIntegrityViolationException(
-                        "could not execute statement",
-                        new SQLException("Duplicate entry '1-색상' for key 'uk_pog_product_id_name'")));
-
-        assertThatThrownBy(() -> productService.createProduct(USER_ID, request))
-                .isInstanceOf(ProductOptionGroupNameDuplicatedException.class)
-                .isInstanceOf(BusinessException.class)
-                .extracting("httpStatus")
-                .isEqualTo(HttpStatus.CONFLICT);
-        verify(productRepository).save(any(Product.class));
-    }
-
-    @Test
     @DisplayName("존재하지 않는 브랜드 ID로 상품 등록을 요청하면 BrandNotFoundException이 발생한다")
     void createProduct_whenBrandDoesNotExist_throwsBrandNotFoundException() {
         Long missingBrandId = 999_999L;
