@@ -22,7 +22,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.BatchSize;
 
 @Entity(name = "product")
 @Getter
@@ -54,13 +53,9 @@ public class Product extends BaseTimeEntity {
     @Column(nullable = false)
     private ProductStatus status;
 
-    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "product", cascade = CascadeType.PERSIST)
     @Builder.Default
     private List<ProductOptionGroup> optionGroups = new ArrayList<>();
-
-    @Builder
-    public record OptionGroupSpec(String name, int displayOrder, boolean required, List<String> values) {
-    }
 
     public static Product create(
             Long brandId,
@@ -116,12 +111,16 @@ public class Product extends BaseTimeEntity {
         Assert.isTrue(status.isCreatable(), "status must be READY");
     }
 
+    public List<ProductOptionGroup> getOptionGroups() {
+        return Collections.unmodifiableList(optionGroups);
+    }
+
     private void addOptionGroup(ProductOptionGroup optionGroup) {
         this.optionGroups.add(optionGroup);
         optionGroup.setProduct(this);
     }
 
-    public List<ProductOptionGroup> getOptionGroups() {
-        return Collections.unmodifiableList(optionGroups);
+    @Builder
+    public record OptionGroupSpec(String name, int displayOrder, boolean required, List<String> values) {
     }
 }

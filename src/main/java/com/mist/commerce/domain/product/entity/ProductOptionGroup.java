@@ -24,7 +24,6 @@ import java.util.Set;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.BatchSize;
 
 @Entity
 @Table(
@@ -55,7 +54,7 @@ public class ProductOptionGroup extends BaseTimeEntity {
 
     private boolean required;
 
-    @OneToMany(mappedBy = "optionGroup", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "optionGroup", cascade = CascadeType.PERSIST)
     private List<ProductOptionValue> optionValues = new ArrayList<>();
 
     private ProductOptionGroup(String name, int displayOrder, boolean required) {
@@ -84,6 +83,10 @@ public class ProductOptionGroup extends BaseTimeEntity {
         return optionGroup;
     }
 
+    public List<ProductOptionValue> getOptionValues() {
+        return Collections.unmodifiableList(optionValues);
+    }
+
     void setProduct(Product product) {
         this.product = product;
     }
@@ -91,9 +94,5 @@ public class ProductOptionGroup extends BaseTimeEntity {
     private void addOptionValue(ProductOptionValue optionValue) {
         this.optionValues.add(optionValue);
         optionValue.setOptionGroup(this);
-    }
-
-    public List<ProductOptionValue> getOptionValues() {
-        return Collections.unmodifiableList(optionValues);
     }
 }

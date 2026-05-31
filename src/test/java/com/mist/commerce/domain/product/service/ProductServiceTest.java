@@ -21,9 +21,7 @@ import com.mist.commerce.domain.product.exception.ProductOptionValueDuplicatedEx
 import com.mist.commerce.domain.product.exception.ProductOptionValueRequiredException;
 import com.mist.commerce.domain.product.policy.ProductRegistrationPolicy;
 import com.mist.commerce.domain.product.repository.ProductRepository;
-import com.mist.commerce.global.exception.BusinessException;
 import java.lang.reflect.Method;
-import java.sql.SQLException;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -32,7 +30,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.annotation.Transactional;
@@ -94,7 +91,8 @@ class ProductServiceTest {
     @DisplayName("옵션 없는 상품 등록 요청은 빈 옵션 그룹 ID 목록을 반환한다")
     void createProduct_withoutOptionGroups_returnsProductIdAndEmptyOptionGroupIds() {
         CreateProductRequest request = validRequest(BRAND_ID, ProductStatus.READY, "2026 한정판");
-        Product savedProduct = Product.create(BRAND_ID, USER_ID, request.name(), request.description(), request.price(), request.status());
+        Product savedProduct = Product.create(BRAND_ID, USER_ID, request.name(), request.description(), request.price(),
+                request.status());
         ReflectionTestUtils.setField(savedProduct, "id", 100L);
         given(productRepository.save(any(Product.class))).willReturn(savedProduct);
 
