@@ -86,4 +86,8 @@ public class User extends BaseTimeEntity {
         }
         this.status = UserStatus.DELETED;
     }
+
+    public Long getCompanyId() {
+        return company.getId();
+    }
 }

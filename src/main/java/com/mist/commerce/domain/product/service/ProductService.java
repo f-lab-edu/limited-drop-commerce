@@ -1,15 +1,12 @@
 package com.mist.commerce.domain.product.service;
 
-import com.mist.commerce.domain.brand.entity.Brand;
-import com.mist.commerce.domain.brand.exception.BrandNotFoundException;
-import com.mist.commerce.domain.brand.repository.BrandRepository;
 import com.mist.commerce.domain.product.dto.CreateProductRequest;
 import com.mist.commerce.domain.product.dto.CreateProductResponse;
 import com.mist.commerce.domain.product.entity.Product;
+import com.mist.commerce.domain.product.entity.ProductOptionGroup;
+import com.mist.commerce.domain.product.policy.ProductRegistrationPolicy;
 import com.mist.commerce.domain.product.repository.ProductRepository;
-import com.mist.commerce.domain.user.entity.User;
-import com.mist.commerce.domain.user.repository.UserRepository;
-import java.util.Optional;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,17 +16,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class ProductService {
 
     private final ProductRepository productRepository;
-    private final BrandRepository brandRepository;
-    private final UserRepository userRepository;
+    private final ProductRegistrationPolicy productRegistrationPolicy;
 
     @Transactional
     public CreateProductResponse createProduct(Long userId, CreateProductRequest request) {
-        if (!brandRepository.existsById(request.brandId())) {
-            throw new BrandNotFoundException(request.brandId());
-        }
+        productRegistrationPolicy.validate(userId, request);
 
-        // TODO: 도메인 규칙 추가 필요 : 해당 브랜드의 회사 소속 직원 검증
-
+        List<Product.OptionGroupSpec> optionGroupSpecs = request.optionGroups() == null
+                ? List.of()
+                : request.optionGroups().stream()
+                        .map(optionGroup -> Product.OptionGroupSpec.builder()
+                                .name(optionGroup.name())
+                                .displayOrder(optionGroup.displayOrder())
+                                .required(optionGroup.required())
+                                .values(optionGroup.values().stream()
+                                        .map(CreateProductRequest.OptionValueRequest::value)
+                                        .toList())
+                                .build()
+                        ).toList();
 
         Product product = Product.create(
                 request.brandId(),
@@ -37,12 +41,16 @@ public class ProductService {
                 request.name(),
                 request.description(),
                 request.price(),
-                request.status()
+                request.status(),
+                optionGroupSpecs
         );
 
         Product saved = productRepository.save(product);
         return CreateProductResponse.builder()
                 .productId(saved.getId())
+                .optionGroupIds(saved.getOptionGroups().stream()
+                        .map(ProductOptionGroup::getId)
+                        .toList())
                 .build();
     }
 }

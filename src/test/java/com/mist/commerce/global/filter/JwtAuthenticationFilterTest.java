@@ -169,7 +169,7 @@ class JwtAuthenticationFilterTest {
         MockHttpServletResponse response = new MockHttpServletResponse();
         MockFilterChain chain = new MockFilterChain();
         given(tokenService.validateToken("broken")).willReturn(true);
-        willThrow(new InvalidTokenException("broken token")).given(tokenService).getUserIdFromToken("broken");
+        willThrow(new InvalidTokenException("invalid token")).given(tokenService).getUserIdFromToken("broken");
 
         filter.doFilter(request, response, chain);
 

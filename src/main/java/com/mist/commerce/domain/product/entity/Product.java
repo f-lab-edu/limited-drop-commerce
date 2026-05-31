@@ -1,7 +1,9 @@
 package com.mist.commerce.domain.product.entity;
 
+import com.mist.commerce.domain.product.exception.ProductOptionGroupNameDuplicatedException;
 import com.mist.commerce.global.entity.BaseTimeEntity;
 import io.jsonwebtoken.lang.Assert;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -9,17 +11,23 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-@Entity
+@Entity(name = "product")
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Builder(toBuilder = true)
+@Builder(access = AccessLevel.PRIVATE, toBuilder = true)
 public class Product extends BaseTimeEntity {
 
     @Id
@@ -45,6 +53,10 @@ public class Product extends BaseTimeEntity {
     @Column(nullable = false)
     private ProductStatus status;
 
+    @OneToMany(mappedBy = "product", cascade = CascadeType.PERSIST)
+    @Builder.Default
+    private List<ProductOptionGroup> optionGroups = new ArrayList<>();
+
     public static Product create(
             Long brandId,
             Long userId,
@@ -53,9 +65,21 @@ public class Product extends BaseTimeEntity {
             Long price,
             ProductStatus status
     ) {
-        validate(brandId, userId, name, price, status);
+        return create(brandId, userId, name, description, price, status, List.of());
+    }
 
-        return Product.builder()
+    public static Product create(
+            Long brandId,
+            Long userId,
+            String name,
+            String description,
+            Long price,
+            ProductStatus status,
+            List<OptionGroupSpec> optionGroupSpecs
+    ) {
+        validate(name, price, status);
+
+        Product product = Product.builder()
                 .brandId(brandId)
                 .userId(userId)
                 .name(name)
@@ -63,11 +87,40 @@ public class Product extends BaseTimeEntity {
                 .price(price)
                 .status(status)
                 .build();
+
+        Set<String> groupNames = new HashSet<>();
+        for (OptionGroupSpec optionGroupSpec : optionGroupSpecs) {
+            ProductOptionGroup optionGroup = ProductOptionGroup.create(
+                    optionGroupSpec.name(),
+                    optionGroupSpec.displayOrder(),
+                    optionGroupSpec.required(),
+                    optionGroupSpec.values()
+            );
+            if (!groupNames.add(optionGroup.getName())) {
+                throw new ProductOptionGroupNameDuplicatedException(optionGroup.getName());
+            }
+            product.addOptionGroup(optionGroup);
+        }
+
+        return product;
     }
 
-    private static void validate(Long brandId, Long userId, String name, Long price, ProductStatus status) {
+    private static void validate(String name, Long price, ProductStatus status) {
         Assert.hasText(name, "name must not be empty");
         Assert.isTrue(price >= 0, "price must be greater than or equal to 0");
-        Assert.isTrue(status.isCreatable(), "status must be DRAFT or ACTIVE");
+        Assert.isTrue(status.isCreatable(), "status must be READY");
+    }
+
+    public List<ProductOptionGroup> getOptionGroups() {
+        return Collections.unmodifiableList(optionGroups);
+    }
+
+    private void addOptionGroup(ProductOptionGroup optionGroup) {
+        this.optionGroups.add(optionGroup);
+        optionGroup.setProduct(this);
+    }
+
+    @Builder
+    public record OptionGroupSpec(String name, int displayOrder, boolean required, List<String> values) {
     }
 }
