@@ -116,6 +116,6 @@ class EventTest {
     }
 
     private EventItemOptionStock optionStock(Long optionValueId, int stockQuantity) {
-        return EventItemOptionStock.create(optionValueId, stockQuantity);
+        return EventItemOptionStock.create(3L, optionValueId, stockQuantity);
     }
 }

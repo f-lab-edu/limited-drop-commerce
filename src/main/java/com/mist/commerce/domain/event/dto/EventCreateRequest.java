@@ -27,6 +27,7 @@ public record EventCreateRequest(
     }
 
     public record OptionStock(
+            @NotNull Long optionGroupId,
             @NotNull Long optionValueId,
             @Min(0) int stockQuantity
     ) {

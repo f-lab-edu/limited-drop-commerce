@@ -16,17 +16,20 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.java.Log;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class EventRegistrationPolicy {
 
     private final BrandRepository brandRepository;
-    private final Clock clock;
     private final ProductRepository productRepository;
+    private final Clock clock;
 
-    public void validate(User user, EventCreateRequest request) {
+    public void  validate(User user, EventCreateRequest request) {
         Company company = user.getCompany();
         Brand brand = brandRepository.findById(request.brandId())
                 .orElseThrow(() -> new BrandNotFoundException(user.getId()));
@@ -40,7 +43,8 @@ public class EventRegistrationPolicy {
                 .distinct()
                 .toList();
 
-        List<Long> foundProductIds = productRepository.findAllById(productIds).stream()
+        List<Product> allByIdInAndBrandId = productRepository.findAllByIdInAndBrandId(productIds, request.brandId());
+        List<Long> foundProductIds = allByIdInAndBrandId.stream()
                 .map(Product::getId)
                 .toList();
 

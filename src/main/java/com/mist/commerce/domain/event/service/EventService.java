@@ -66,6 +66,7 @@ public class EventService {
                 : item.optionStocks()
                         .stream()
                         .map(optionStock -> EventItemOptionStock.create(
+                                optionStock.optionGroupId(),
                                 optionStock.optionValueId(),
                                 optionStock.stockQuantity()
                         ))
