@@ -59,7 +59,7 @@ class EventRegistrationPolicyTest {
     @BeforeEach
     void setUp() {
         Clock fixedClock = Clock.fixed(NOW, ZoneOffset.UTC);
-        policy = new EventRegistrationPolicy(brandRepository, fixedClock, productRepository);
+        policy = new EventRegistrationPolicy(brandRepository, productRepository, fixedClock);
     }
 
     @Test
@@ -114,6 +114,35 @@ class EventRegistrationPolicyTest {
     }
 
     @Test
+    @DisplayName("모든 상품이 request.brandId와 같은 brandId 소속이면 통과한다")
+    void validate_whenAllProductsBelongToRequestBrand_doesNotThrow() {
+        givenCompanyUser(7L);
+        given(brandRepository.findById(1L)).willReturn(Optional.of(Brand.create(7L, "Mist", "desc")));
+        given(productRepository.findAllByIdInAndBrandId(List.of(10L, 11L), 1L))
+                .willReturn(List.of(product(10L, 1L), product(11L, 1L)));
+
+        EventCreateRequest request = request(List.of(item(10L), item(11L)), START_AT, END_AT);
+
+        assertThatCode(() -> policy.validate(user, request))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("일부 상품의 brandId가 request.brandId와 다르면 ProductNotFoundException을 던진다")
+    void validate_whenAnyProductBelongsToDifferentBrand_throwsEventRegistrationForbidden() {
+        givenCompanyUser(7L);
+
+        given(brandRepository.findById(1L)).willReturn(Optional.of(Brand.create(7L, "Mist", "desc")));
+        given(productRepository.findAllByIdInAndBrandId(List.of(10L, 11L), 1L))
+                .willReturn(List.of(product(10L, 1L)));
+
+        EventCreateRequest request = request(List.of(item(10L), item(11L)), START_AT, END_AT);
+
+        assertThatThrownBy(() -> policy.validate(user, request))
+                .isInstanceOf(ProductNotFoundException.class);
+    }
+
+    @Test
     @DisplayName("기업이 브랜드를 소유하고 상품과 일정이 유효하면 예외 없이 통과한다")
     void validate_whenCompanyOwnsBrandProductsExistAndScheduleValid_doesNotThrow() {
         givenValidAuthority();
@@ -136,7 +165,7 @@ class EventRegistrationPolicyTest {
     private void givenValidAuthority() {
         givenCompanyUser(7L);
         given(brandRepository.findById(1L)).willReturn(Optional.of(Brand.create(7L, "Mist", "desc")));
-        given(productRepository.findAllById(List.of(10L))).willReturn(List.of(product(10L)));
+        given(productRepository.findAllByIdInAndBrandId(List.of(10L), 1L)).willReturn(List.of(product(10L, 1L)));
     }
 
     private EventCreateRequest request() {
@@ -156,12 +185,16 @@ class EventRegistrationPolicyTest {
     }
 
     private Product product(Long id) {
-        Product product = Product.create(1L, 1L, "Sneakers", "desc", 150000L, ProductStatus.READY);
+        return product(id, 1L);
+    }
+
+    private Product product(Long id, Long brandId) {
+        Product product = Product.create(brandId, 1L, "Sneakers", "desc", 150000L, ProductStatus.READY);
         ReflectionTestUtils.setField(product, "id", id);
         return product;
     }
 
     private EventCreateRequest.OptionStock optionStock() {
-        return new EventCreateRequest.OptionStock(5L, 40);
+        return new EventCreateRequest.OptionStock(3L, 5L, 40);
     }
 }

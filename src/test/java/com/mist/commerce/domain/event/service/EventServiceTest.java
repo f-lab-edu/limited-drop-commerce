@@ -122,6 +122,28 @@ class EventServiceTest {
     }
 
     @Test
+    @DisplayName("TC-3.1 요청의 optionGroupId, optionValueId, stockQuantity가 저장 Event에 그대로 매핑된다")
+    void create_mapsOptionGroupIdOptionValueIdAndStockQuantityToSavedEvent() {
+        EventCreateRequest request = request(List.of(item(10L)));
+        given(userRepository.findById(1L)).willReturn(Optional.of(user));
+        given(dropEventRepository.save(any(Event.class))).willReturn(
+                savedEvent(42L, Instant.now(), savedItem(101L, 10L)));
+
+        service.create(1L, request);
+
+        ArgumentCaptor<Event> eventCaptor = ArgumentCaptor.forClass(Event.class);
+        verify(dropEventRepository).save(eventCaptor.capture());
+        Event capturedEvent = eventCaptor.getValue();
+        EventItemOptionStock capturedOptionStock = capturedEvent.getItems()
+                .getFirst()
+                .getOptionStocks()
+                .getFirst();
+        assertThat(capturedOptionStock.getProductOptionGroupId()).isEqualTo(3L);
+        assertThat(capturedOptionStock.getProductOptionValueId()).isEqualTo(5L);
+        assertThat(capturedOptionStock.getStockQuantity()).isEqualTo(40);
+    }
+
+    @Test
     @DisplayName("인증 사용자와 요청 값을 정책에 전달한다")
     void create_passesAuthenticatedUserAndRequestValuesToPolicy() {
         EventCreateRequest request = request(List.of(item(10L), item(11L)));
@@ -154,6 +176,19 @@ class EventServiceTest {
     @Test
     @DisplayName("정책이 권한 예외를 던지면 그대로 전파하고 저장하지 않는다")
     void create_whenPolicyThrowsForbidden_propagatesAndDoesNotSave() {
+        EventCreateRequest request = request(List.of(item(10L)));
+        given(userRepository.findById(1L)).willReturn(Optional.of(user));
+        willThrow(new EventRegistrationForbiddenException(1L))
+                .given(eventRegistrationPolicy).validate(user, request);
+
+        assertThatThrownBy(() -> service.create(1L, request))
+                .isInstanceOf(EventRegistrationForbiddenException.class);
+        verify(dropEventRepository, never()).save(any(Event.class));
+    }
+
+    @Test
+    @DisplayName("TC-5.6 정책 위반 시 EventRegistrationForbiddenException을 전파하고 저장하지 않는다")
+    void create_whenPolicyViolationOccurs_propagatesForbiddenAndDoesNotSaveEvent() {
         EventCreateRequest request = request(List.of(item(10L)));
         given(userRepository.findById(1L)).willReturn(Optional.of(user));
         willThrow(new EventRegistrationForbiddenException(1L))
@@ -214,7 +249,7 @@ class EventServiceTest {
     }
 
     private EventCreateRequest.OptionStock optionStock() {
-        return new EventCreateRequest.OptionStock(5L, 40);
+        return new EventCreateRequest.OptionStock(3L, 5L, 40);
     }
 
     private Event savedEvent(Long eventId, Instant createdAt, EventItem... items) {
@@ -226,7 +261,7 @@ class EventServiceTest {
 
     private EventItem savedItem(Long eventItemId, Long productId) {
         EventItem item = EventItem.create(productId, new BigDecimal("150000"), 100, List.of(
-                EventItemOptionStock.create(5L, 40)
+                EventItemOptionStock.create(3L, 5L, 40)
         ));
         ReflectionTestUtils.setField(item, "id", eventItemId);
         return item;

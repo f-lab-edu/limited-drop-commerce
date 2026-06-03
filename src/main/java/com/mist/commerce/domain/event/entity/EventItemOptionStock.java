@@ -23,20 +23,24 @@ public class EventItemOptionStock extends BaseTimeEntity {
     @Column(name = "id", updatable = false)
     private Long id;
 
+    @Column(name = "product_option_group_id", nullable = false)
+    private Long productOptionGroupId;
+
     @Column(name = "product_option_value_id", nullable = false)
     private Long productOptionValueId;
 
     @Column(name = "stock_quantity")
     private int stockQuantity;
 
-    private EventItemOptionStock(Long productOptionValueId, int stockQuantity) {
+    private EventItemOptionStock(Long productOptionGroupId, Long productOptionValueId, int stockQuantity) {
         validate(stockQuantity);
+        this.productOptionGroupId = productOptionGroupId;
         this.productOptionValueId = productOptionValueId;
         this.stockQuantity = stockQuantity;
     }
 
-    public static EventItemOptionStock create(Long productOptionValueId, int stockQuantity) {
-        return new EventItemOptionStock(productOptionValueId, stockQuantity);
+    public static EventItemOptionStock create(Long productOptionGroupId, Long productOptionValueId, int stockQuantity) {
+        return new EventItemOptionStock(productOptionGroupId, productOptionValueId, stockQuantity);
     }
 
     private static void validate(int stockQuantity) {

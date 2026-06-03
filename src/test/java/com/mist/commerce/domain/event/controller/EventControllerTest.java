@@ -68,7 +68,7 @@ class EventControllerTest extends MySqlContainerTestSupport {
     }
 
     @Test
-    @DisplayName("인증된 사용자가 유효한 본문으로 등록하면 201과 성공 envelope를 반환한다")
+    @DisplayName("인증된 사용자가 optionGroupId 포함 유효 본문으로 등록하면 201과 기존 성공 envelope를 반환한다")
     void create_withAuthenticatedUserAndValidBody_returns201AndSuccessEnvelope() throws Exception {
         EventCreateRequest request = validRequest();
         EventCreateResponse response = new EventCreateResponse(
@@ -93,6 +93,43 @@ class EventControllerTest extends MySqlContainerTestSupport {
                 .andExpect(jsonPath("$.data.items[0].productId").value(10))
                 .andExpect(jsonPath("$.data.createdAt").isNotEmpty())
                 .andExpect(jsonPath("$.timestamp").isNotEmpty());
+    }
+
+    @Test
+    @DisplayName("items[].optionStocks[].optionGroupId 누락 시 400 VALIDATION_ERROR envelope를 반환한다")
+    void create_withMissingOptionGroupId_returns400ValidationErrorAndDoesNotCallService() throws Exception {
+        String requestBody = """
+                {
+                  "brandId": 1,
+                  "title": "한정 스니커즈 드롭",
+                  "startAt": "2026-06-01T10:00:00Z",
+                  "endAt": "2026-06-01T12:00:00Z",
+                  "items": [
+                    {
+                      "productId": 10,
+                      "price": 150000,
+                      "quantity": 100,
+                      "optionStocks": [
+                        {
+                          "optionValueId": 5,
+                          "stockQuantity": 40
+                        }
+                      ]
+                    }
+                  ]
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/events")
+                        .with(authAs(1L, "ROLE_COMPANY"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.errors[?(@.field == 'items[0].optionStocks[0].optionGroupId')]").exists());
+
+        verify(dropEventService, never()).create(any(), any());
     }
 
     @Test
@@ -170,7 +207,7 @@ class EventControllerTest extends MySqlContainerTestSupport {
     @Test
     @DisplayName("stockQuantity만 음수이면 400 VALIDATION_ERROR와 stockQuantity 필드 오류를 반환한다")
     void create_withNegativeStockQuantity_returns400ValidationErrorForStockQuantityOnly() throws Exception {
-        EventCreateRequest.OptionStock invalidStock = new EventCreateRequest.OptionStock(5L, -1);
+        EventCreateRequest.OptionStock invalidStock = new EventCreateRequest.OptionStock(3L, 5L, -1);
         EventCreateRequest.Item invalidItem = new EventCreateRequest.Item(
                 10L,
                 new BigDecimal("150000"),
@@ -322,7 +359,7 @@ class EventControllerTest extends MySqlContainerTestSupport {
     }
 
     private EventCreateRequest.OptionStock validOptionStock() {
-        return new EventCreateRequest.OptionStock(5L, 40);
+        return new EventCreateRequest.OptionStock(3L, 5L, 40);
     }
 
     @TestConfiguration
