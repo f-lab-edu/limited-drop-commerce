@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 class OrderTest {
 
     private static final Long USER_ID = 10L;
+    private static final Long EVENT_ID = 100L;
     private static final LocalDateTime ORDERED_AT = LocalDateTime.of(2026, 6, 17, 12, 0);
     private static final Duration PAYMENT_TTL = Duration.ofMinutes(30);
 
@@ -52,6 +53,7 @@ class OrderTest {
     void create_calculatesTotalAmountAndTotalQuantityFromItems() {
         Order order = Order.create(
                 USER_ID,
+                EVENT_ID,
                 List.of(
                         item(1L, 11L, "10000", 2),
                         item(2L, 22L, "25000", 3)),
@@ -188,7 +190,7 @@ class OrderTest {
     }
 
     private Order order() {
-        return Order.create(USER_ID, List.of(item(1L, 11L, "150000", 1)), ORDERED_AT, PAYMENT_TTL);
+        return Order.create(USER_ID, EVENT_ID, List.of(item(1L, 11L, "150000", 1)), ORDERED_AT, PAYMENT_TTL);
     }
 
     private Order paidOrder() {

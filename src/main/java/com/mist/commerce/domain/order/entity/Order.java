@@ -38,6 +38,9 @@ public class Order extends BaseTimeEntity {
     @Column(name = "user_id")
     private Long userId;
 
+    @Column(name = "event_id")
+    private Long eventId;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
     private OrderStatus status;
@@ -64,9 +67,10 @@ public class Order extends BaseTimeEntity {
     @JoinColumn(name = "order_id")
     private List<OrderItem> items;
 
-    private Order(Long userId, List<OrderItem> items, LocalDateTime orderedAt, Duration ttl) {
+    private Order(Long userId, Long eventId, List<OrderItem> items, LocalDateTime orderedAt, Duration ttl) {
         this.orderNo = "ORD-" + UUID.randomUUID();
         this.userId = userId;
+        this.eventId = eventId;
         this.status = OrderStatus.PENDING_PAYMENT;
         this.totalAmount = calculateTotalAmount(items);
         this.totalQuantity = calculateTotalQuantity(items);
@@ -77,8 +81,8 @@ public class Order extends BaseTimeEntity {
         this.items = items;
     }
 
-    public static Order create(Long userId, List<OrderItem> items, LocalDateTime orderedAt, Duration ttl) {
-        return new Order(userId, items, orderedAt, ttl);
+    public static Order create(Long userId, Long eventId, List<OrderItem> items, LocalDateTime orderedAt, Duration ttl) {
+        return new Order(userId, eventId, items, orderedAt, ttl);
     }
 
     public void markPaid() {
