@@ -22,6 +22,7 @@ public record EventCreateRequest(
             @NotNull Long productId,
             @NotNull @PositiveOrZero BigDecimal price,
             @Min(1) int quantity,
+            @Min(1) int maxPurchasePerCustomer,
             @Valid List<OptionStock> optionStocks
     ) {
     }

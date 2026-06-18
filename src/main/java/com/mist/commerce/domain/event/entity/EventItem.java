@@ -1,5 +1,7 @@
 package com.mist.commerce.domain.event.entity;
 
+import com.mist.commerce.domain.reservation.exception.InvalidReservationQuantityException;
+import com.mist.commerce.domain.reservation.exception.PurchaseLimitExceededException;
 import com.mist.commerce.global.entity.BaseTimeEntity;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -37,6 +39,9 @@ public class EventItem extends BaseTimeEntity {
     @Column(name = "quantity")
     private int quantity;
 
+    @Column(name = "max_purchase_per_customer")
+    private int maxPurchasePerCustomer;
+
     @Column(name = "reserved_quantity")
     private int reservedQuantity;
 
@@ -47,11 +52,18 @@ public class EventItem extends BaseTimeEntity {
     @JoinColumn(name = "event_item_id")
     private List<EventItemOptionStock> optionStocks;
 
-    private EventItem(Long productId, BigDecimal price, int quantity, List<EventItemOptionStock> optionStocks) {
-        validate(price, quantity);
+    private EventItem(
+            Long productId,
+            BigDecimal price,
+            int quantity,
+            int maxPurchasePerCustomer,
+            List<EventItemOptionStock> optionStocks
+    ) {
+        validate(price, quantity, maxPurchasePerCustomer);
         this.productId = productId;
         this.price = price;
         this.quantity = quantity;
+        this.maxPurchasePerCustomer = maxPurchasePerCustomer;
         this.reservedQuantity = 0;
         this.soldQuantity = 0;
         this.optionStocks = optionStocks;
@@ -63,15 +75,37 @@ public class EventItem extends BaseTimeEntity {
             int quantity,
             List<EventItemOptionStock> optionStocks
     ) {
-        return new EventItem(productId, price, quantity, optionStocks);
+        return create(productId, price, quantity, Integer.MAX_VALUE, optionStocks);
     }
 
-    private static void validate(BigDecimal price, int quantity) {
+    public static EventItem create(
+            Long productId,
+            BigDecimal price,
+            int quantity,
+            int maxPurchasePerCustomer,
+            List<EventItemOptionStock> optionStocks
+    ) {
+        return new EventItem(productId, price, quantity, maxPurchasePerCustomer, optionStocks);
+    }
+
+    public void verifyPurchasableQuantity(int requestedQuantity, int alreadyPurchasedQuantity) {
+        if (requestedQuantity < 1) {
+            throw new InvalidReservationQuantityException();
+        }
+        if (alreadyPurchasedQuantity + requestedQuantity > maxPurchasePerCustomer) {
+            throw new PurchaseLimitExceededException();
+        }
+    }
+
+    private static void validate(BigDecimal price, int quantity, int maxPurchasePerCustomer) {
         if (price.compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException("Price must be non-negative");
         }
         if (quantity < 0) {
             throw new IllegalArgumentException("Quantity must be non-negative");
+        }
+        if (maxPurchasePerCustomer < 1) {
+            throw new IllegalArgumentException("Max purchase per customer must be positive");
         }
     }
 }
