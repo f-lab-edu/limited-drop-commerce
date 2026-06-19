@@ -5,6 +5,8 @@ import com.mist.commerce.domain.event.entity.EventItem;
 import com.mist.commerce.domain.event.entity.EventItemOptionStock;
 import com.mist.commerce.domain.event.exception.DropEventNotFoundException;
 import com.mist.commerce.domain.event.exception.EventItemOptionNotFoundException;
+import com.mist.commerce.domain.event.exception.InsufficientStockException;
+import com.mist.commerce.domain.event.exception.StockExhaustedException;
 import com.mist.commerce.domain.event.repository.EventRepository;
 import com.mist.commerce.domain.order.entity.Order;
 import com.mist.commerce.domain.order.entity.OrderItem;
@@ -14,6 +16,7 @@ import com.mist.commerce.domain.product.repository.ProductOptionGroupRepository;
 import com.mist.commerce.domain.product.repository.ProductOptionValueRepository;
 import com.mist.commerce.domain.reservation.entity.InventoryReservation;
 import com.mist.commerce.domain.reservation.exception.ActiveReservationAlreadyExistsException;
+import com.mist.commerce.domain.reservation.redis.OptionStockRedisRepository;
 import com.mist.commerce.domain.reservation.repository.InventoryReservationRepository;
 import java.time.Clock;
 import java.time.Duration;
@@ -21,6 +24,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Service
 public class ReservationService {
@@ -32,6 +37,7 @@ public class ReservationService {
     private final InventoryReservationRepository inventoryReservationRepository;
     private final ProductOptionGroupRepository productOptionGroupRepository;
     private final ProductOptionValueRepository productOptionValueRepository;
+    private final OptionStockRedisRepository optionStockRedisRepository;
     private final Clock clock;
 
     public ReservationService(
@@ -40,6 +46,7 @@ public class ReservationService {
             InventoryReservationRepository inventoryReservationRepository,
             ProductOptionGroupRepository productOptionGroupRepository,
             ProductOptionValueRepository productOptionValueRepository,
+            OptionStockRedisRepository optionStockRedisRepository,
             Clock clock
     ) {
         this.eventRepository = eventRepository;
@@ -47,6 +54,7 @@ public class ReservationService {
         this.inventoryReservationRepository = inventoryReservationRepository;
         this.productOptionGroupRepository = productOptionGroupRepository;
         this.productOptionValueRepository = productOptionValueRepository;
+        this.optionStockRedisRepository = optionStockRedisRepository;
         this.clock = clock;
     }
 
@@ -75,6 +83,17 @@ public class ReservationService {
                 .orElseThrow(EventItemOptionNotFoundException::new);
 
         eventItem.verifyPurchasableQuantity(command.quantity(), 0);
+
+        int dbAvailable = optionStock.getStockQuantity() - optionStock.getReservedQuantity();
+        long remaining = optionStockRedisRepository.tryDecrease(
+                command.eventItemOptionStockId(),
+                command.quantity(),
+                dbAvailable);
+        if (remaining < 0) {
+            throw dbAvailable <= 0 ? new StockExhaustedException() : new InsufficientStockException();
+        }
+        registerRedisCompensation(command.eventItemOptionStockId(), command.quantity());
+
         optionStock.reserve(command.quantity());
 
         String groupName = productOptionGroupRepository.findById(optionStock.getProductOptionGroupId())
@@ -110,4 +129,20 @@ public class ReservationService {
 
         return new ReserveResult(saved.getId(), saved.getExpiresAt(), saved.getStatus().name());
     }
+
+    private void registerRedisCompensation(Long optionStockId, int quantity) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            return;
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCompletion(int status) {
+                if (status == STATUS_ROLLED_BACK) {
+                    optionStockRedisRepository.increase(optionStockId, quantity);
+                }
+            }
+        });
+    }
+
 }

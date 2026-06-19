@@ -148,6 +148,79 @@ class OptionStockRedisRepositoryTest {
         assertThat(optionStockRedisRepository.getRemaining(OPTION_STOCK_ID)).isZero();
     }
 
+    @Test
+    @DisplayName("TC-REDIS-STOCK-007: 미초기화 키는 fallbackAvailable로 지연 시딩한 뒤 차감한다")
+    void tryDecreaseWithFallback_whenKeyDoesNotExist_seedsAndDecreases() {
+        long remaining = optionStockRedisRepository.tryDecrease(OPTION_STOCK_ID, 3, 10);
+
+        assertThat(remaining).isEqualTo(7L);
+        assertThat(optionStockRedisRepository.getRemaining(OPTION_STOCK_ID)).isEqualTo(7L);
+    }
+
+    @Test
+    @DisplayName("TC-REDIS-STOCK-008: 키가 이미 있으면 fallbackAvailable을 무시하고 기존 값 기준으로 차감한다")
+    void tryDecreaseWithFallback_whenKeyExists_ignoresFallbackAndUsesExistingRemaining() {
+        optionStockRedisRepository.initialize(OPTION_STOCK_ID, 5);
+
+        long remaining = optionStockRedisRepository.tryDecrease(OPTION_STOCK_ID, 2, 100);
+
+        assertThat(remaining).isEqualTo(3L);
+        assertThat(optionStockRedisRepository.getRemaining(OPTION_STOCK_ID)).isEqualTo(3L);
+    }
+
+    @Test
+    @DisplayName("TC-REDIS-STOCK-009: fallbackAvailable이 요청 수량보다 작으면 시딩 후 -1을 반환하고 차감하지 않는다")
+    void tryDecreaseWithFallback_whenSeededStockIsInsufficient_seedsAndReturnsMinusOne() {
+        long remaining = optionStockRedisRepository.tryDecrease(OPTION_STOCK_ID, 5, 2);
+
+        assertThat(remaining).isEqualTo(-1L);
+        assertThat(optionStockRedisRepository.getRemaining(OPTION_STOCK_ID)).isEqualTo(2L);
+    }
+
+    @Test
+    @DisplayName("TC-REDIS-STOCK-010: 미초기화 키의 200개 동시 지연 시딩 차감 요청에서 100개만 성공한다")
+    void tryDecreaseWithFallback_concurrentlySeedsOnceAndAllowsOnlyFallbackAvailableQuantity() throws Exception {
+        int fallbackAvailable = 100;
+        int threadCount = 200;
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch ready = new CountDownLatch(threadCount);
+        CountDownLatch start = new CountDownLatch(1);
+        AtomicInteger successCount = new AtomicInteger();
+        AtomicInteger failureCount = new AtomicInteger();
+        AtomicInteger unexpectedNegativeCount = new AtomicInteger();
+        List<Future<?>> futures = new ArrayList<>();
+
+        for (int i = 0; i < threadCount; i++) {
+            futures.add(executor.submit(() -> {
+                ready.countDown();
+                start.await();
+
+                long result = optionStockRedisRepository.tryDecrease(OPTION_STOCK_ID, 1, fallbackAvailable);
+                if (result >= 0) {
+                    successCount.incrementAndGet();
+                } else if (result == -1L) {
+                    failureCount.incrementAndGet();
+                } else {
+                    unexpectedNegativeCount.incrementAndGet();
+                }
+                return null;
+            }));
+        }
+
+        assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue();
+        start.countDown();
+        for (Future<?> future : futures) {
+            future.get(5, TimeUnit.SECONDS);
+        }
+        executor.shutdown();
+        assertThat(executor.awaitTermination(5, TimeUnit.SECONDS)).isTrue();
+
+        assertThat(successCount.get()).isEqualTo(fallbackAvailable);
+        assertThat(failureCount.get()).isEqualTo(threadCount - fallbackAvailable);
+        assertThat(unexpectedNegativeCount.get()).isZero();
+        assertThat(optionStockRedisRepository.getRemaining(OPTION_STOCK_ID)).isZero();
+    }
+
     @SpringBootConfiguration
     @Import(OptionStockRedisRepository.class)
     @ImportAutoConfiguration(DataRedisAutoConfiguration.class)

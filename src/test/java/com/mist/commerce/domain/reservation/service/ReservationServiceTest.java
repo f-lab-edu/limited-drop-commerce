@@ -23,6 +23,7 @@ import com.mist.commerce.domain.product.entity.ProductOptionValue;
 import com.mist.commerce.domain.product.repository.ProductOptionGroupRepository;
 import com.mist.commerce.domain.product.repository.ProductOptionValueRepository;
 import com.mist.commerce.domain.reservation.entity.InventoryReservation;
+import com.mist.commerce.domain.reservation.redis.OptionStockRedisRepository;
 import com.mist.commerce.domain.reservation.repository.InventoryReservationRepository;
 import com.mist.commerce.global.exception.BusinessException;
 import java.math.BigDecimal;
@@ -72,6 +73,9 @@ class ReservationServiceTest {
     @Mock
     private ProductOptionValueRepository productOptionValueRepository;
 
+    @Mock
+    private OptionStockRedisRepository optionStockRedisRepository;
+
     private ReservationService reservationService;
 
     @BeforeEach
@@ -82,6 +86,7 @@ class ReservationServiceTest {
                 inventoryReservationRepository,
                 productOptionGroupRepository,
                 productOptionValueRepository,
+                optionStockRedisRepository,
                 CLOCK);
     }
 
@@ -98,6 +103,7 @@ class ReservationServiceTest {
                 .thenReturn(false);
         when(productOptionGroupRepository.findById(PRODUCT_OPTION_GROUP_ID)).thenReturn(Optional.of(group));
         when(productOptionValueRepository.findById(PRODUCT_OPTION_VALUE_ID)).thenReturn(Optional.of(value));
+        when(optionStockRedisRepository.tryDecrease(OPTION_STOCK_ID, 2, 10)).thenReturn(8L);
         when(orderRepository.save(any(Order.class))).thenReturn(savedOrder);
         when(inventoryReservationRepository.save(any(InventoryReservation.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
@@ -114,12 +120,14 @@ class ReservationServiceTest {
                 orderRepository,
                 productOptionGroupRepository,
                 productOptionValueRepository,
+                optionStockRedisRepository,
                 inventoryReservationRepository);
         ordered.verify(eventRepository).findById(EVENT_ID);
         ordered.verify(orderRepository).existsByUserIdAndEventIdAndStatus(
                 USER_ID,
                 EVENT_ID,
                 OrderStatus.PENDING_PAYMENT);
+        ordered.verify(optionStockRedisRepository).tryDecrease(OPTION_STOCK_ID, 2, 10);
         ordered.verify(productOptionGroupRepository).findById(PRODUCT_OPTION_GROUP_ID);
         ordered.verify(productOptionValueRepository).findById(PRODUCT_OPTION_VALUE_ID);
         ordered.verify(orderRepository).save(any(Order.class));
@@ -134,7 +142,11 @@ class ReservationServiceTest {
         assertBusinessException("DROP_EVENT_NOT_FOUND", () -> reservationService.reserve(command(1)));
 
         verify(orderRepository, never()).existsByUserIdAndEventIdAndStatus(any(), any(), any());
-        verifyNoInteractions(productOptionGroupRepository, productOptionValueRepository, inventoryReservationRepository);
+        verifyNoInteractions(
+                productOptionGroupRepository,
+                productOptionValueRepository,
+                optionStockRedisRepository,
+                inventoryReservationRepository);
         verify(orderRepository, never()).save(any());
     }
 
@@ -146,7 +158,11 @@ class ReservationServiceTest {
         assertBusinessException("DROP_EVENT_NOT_OPEN", () -> reservationService.reserve(command(1)));
 
         verify(orderRepository, never()).existsByUserIdAndEventIdAndStatus(any(), any(), any());
-        verifyNoInteractions(productOptionGroupRepository, productOptionValueRepository, inventoryReservationRepository);
+        verifyNoInteractions(
+                productOptionGroupRepository,
+                productOptionValueRepository,
+                optionStockRedisRepository,
+                inventoryReservationRepository);
         verify(orderRepository, never()).save(any());
     }
 
@@ -158,7 +174,11 @@ class ReservationServiceTest {
         assertBusinessException("DROP_EVENT_CLOSED", () -> reservationService.reserve(command(1)));
 
         verify(orderRepository, never()).existsByUserIdAndEventIdAndStatus(any(), any(), any());
-        verifyNoInteractions(productOptionGroupRepository, productOptionValueRepository, inventoryReservationRepository);
+        verifyNoInteractions(
+                productOptionGroupRepository,
+                productOptionValueRepository,
+                optionStockRedisRepository,
+                inventoryReservationRepository);
         verify(orderRepository, never()).save(any());
     }
 
@@ -173,7 +193,11 @@ class ReservationServiceTest {
         assertBusinessException("ACTIVE_RESERVATION_ALREADY_EXISTS", () -> reservationService.reserve(command(1)));
 
         assertThat(event.getItems().getFirst().getOptionStocks().getFirst().getReservedQuantity()).isZero();
-        verifyNoInteractions(productOptionGroupRepository, productOptionValueRepository, inventoryReservationRepository);
+        verifyNoInteractions(
+                productOptionGroupRepository,
+                productOptionValueRepository,
+                optionStockRedisRepository,
+                inventoryReservationRepository);
         verify(orderRepository, never()).save(any());
     }
 
@@ -185,7 +209,11 @@ class ReservationServiceTest {
 
         assertBusinessException("EVENT_ITEM_OPTION_NOT_FOUND", () -> reservationService.reserve(command(1)));
 
-        verifyNoInteractions(productOptionGroupRepository, productOptionValueRepository, inventoryReservationRepository);
+        verifyNoInteractions(
+                productOptionGroupRepository,
+                productOptionValueRepository,
+                optionStockRedisRepository,
+                inventoryReservationRepository);
         verify(orderRepository, never()).save(any());
     }
 
@@ -198,7 +226,11 @@ class ReservationServiceTest {
         assertBusinessException("EVENT_ITEM_OPTION_NOT_FOUND", () -> reservationService.reserve(command(1)));
 
         assertThat(event.getItems().getFirst().getOptionStocks().getFirst().getReservedQuantity()).isZero();
-        verifyNoInteractions(productOptionGroupRepository, productOptionValueRepository, inventoryReservationRepository);
+        verifyNoInteractions(
+                productOptionGroupRepository,
+                productOptionValueRepository,
+                optionStockRedisRepository,
+                inventoryReservationRepository);
         verify(orderRepository, never()).save(any());
     }
 
@@ -211,7 +243,11 @@ class ReservationServiceTest {
         assertBusinessException("INVALID_RESERVATION_QUANTITY", () -> reservationService.reserve(command(0)));
 
         assertThat(event.getItems().getFirst().getOptionStocks().getFirst().getReservedQuantity()).isZero();
-        verifyNoInteractions(productOptionGroupRepository, productOptionValueRepository, inventoryReservationRepository);
+        verifyNoInteractions(
+                productOptionGroupRepository,
+                productOptionValueRepository,
+                optionStockRedisRepository,
+                inventoryReservationRepository);
         verify(orderRepository, never()).save(any());
     }
 
@@ -224,7 +260,11 @@ class ReservationServiceTest {
         assertBusinessException("INVALID_RESERVATION_QUANTITY", () -> reservationService.reserve(command(-1)));
 
         assertThat(event.getItems().getFirst().getOptionStocks().getFirst().getReservedQuantity()).isZero();
-        verifyNoInteractions(productOptionGroupRepository, productOptionValueRepository, inventoryReservationRepository);
+        verifyNoInteractions(
+                productOptionGroupRepository,
+                productOptionValueRepository,
+                optionStockRedisRepository,
+                inventoryReservationRepository);
         verify(orderRepository, never()).save(any());
     }
 
@@ -237,18 +277,24 @@ class ReservationServiceTest {
         assertBusinessException("PURCHASE_LIMIT_EXCEEDED", () -> reservationService.reserve(command(2)));
 
         assertThat(event.getItems().getFirst().getOptionStocks().getFirst().getReservedQuantity()).isZero();
-        verifyNoInteractions(productOptionGroupRepository, productOptionValueRepository, inventoryReservationRepository);
+        verifyNoInteractions(
+                productOptionGroupRepository,
+                productOptionValueRepository,
+                optionStockRedisRepository,
+                inventoryReservationRepository);
         verify(orderRepository, never()).save(any());
     }
 
     @Test
     @DisplayName("TC-RS-U-011: 가용 재고가 부족하면 INSUFFICIENT_STOCK을 던진다")
     void reserve_whenAvailableStockIsLowerThanQuantity_throwsInsufficientStock() {
-        Event event = openEvent(item(3, 10, optionStock(1)));
+        Event event = openEvent(item(3, 10, optionStock(OPTION_STOCK_ID, 10, 9)));
         stubOpenEventWithoutDuplicate(event);
+        when(optionStockRedisRepository.tryDecrease(OPTION_STOCK_ID, 2, 1)).thenReturn(-1L);
 
         assertBusinessException("INSUFFICIENT_STOCK", () -> reservationService.reserve(command(2)));
 
+        verify(optionStockRedisRepository).tryDecrease(OPTION_STOCK_ID, 2, 1);
         verifyNoInteractions(productOptionGroupRepository, productOptionValueRepository, inventoryReservationRepository);
         verify(orderRepository, never()).save(any());
     }
@@ -258,9 +304,11 @@ class ReservationServiceTest {
     void reserve_whenAvailableStockIsZero_throwsStockExhausted() {
         Event event = openEvent(item(3, 10, optionStock(0)));
         stubOpenEventWithoutDuplicate(event);
+        when(optionStockRedisRepository.tryDecrease(OPTION_STOCK_ID, 1, 0)).thenReturn(-1L);
 
         assertBusinessException("STOCK_EXHAUSTED", () -> reservationService.reserve(command(1)));
 
+        verify(optionStockRedisRepository).tryDecrease(OPTION_STOCK_ID, 1, 0);
         verifyNoInteractions(productOptionGroupRepository, productOptionValueRepository, inventoryReservationRepository);
         verify(orderRepository, never()).save(any());
     }
@@ -270,10 +318,12 @@ class ReservationServiceTest {
     void reserve_whenProductOptionGroupDoesNotExist_throwsEventItemOptionNotFound() {
         Event event = openEvent(item(3, 10, optionStock(10)));
         stubOpenEventWithoutDuplicate(event);
+        when(optionStockRedisRepository.tryDecrease(OPTION_STOCK_ID, 1, 10)).thenReturn(9L);
         when(productOptionGroupRepository.findById(PRODUCT_OPTION_GROUP_ID)).thenReturn(Optional.empty());
 
         assertBusinessException("EVENT_ITEM_OPTION_NOT_FOUND", () -> reservationService.reserve(command(1)));
 
+        verify(optionStockRedisRepository).tryDecrease(OPTION_STOCK_ID, 1, 10);
         verify(productOptionValueRepository, never()).findById(any());
         verify(orderRepository, never()).save(any());
         verify(inventoryReservationRepository, never()).save(any());
@@ -285,11 +335,13 @@ class ReservationServiceTest {
         Event event = openEvent(item(3, 10, optionStock(10)));
         ProductOptionGroup group = optionGroup("색상");
         stubOpenEventWithoutDuplicate(event);
+        when(optionStockRedisRepository.tryDecrease(OPTION_STOCK_ID, 1, 10)).thenReturn(9L);
         when(productOptionGroupRepository.findById(PRODUCT_OPTION_GROUP_ID)).thenReturn(Optional.of(group));
         when(productOptionValueRepository.findById(PRODUCT_OPTION_VALUE_ID)).thenReturn(Optional.empty());
 
         assertBusinessException("EVENT_ITEM_OPTION_NOT_FOUND", () -> reservationService.reserve(command(1)));
 
+        verify(optionStockRedisRepository).tryDecrease(OPTION_STOCK_ID, 1, 10);
         verify(orderRepository, never()).save(any());
         verify(inventoryReservationRepository, never()).save(any());
     }
@@ -365,6 +417,12 @@ class ReservationServiceTest {
                 PRODUCT_OPTION_VALUE_ID,
                 stockQuantity);
         ReflectionTestUtils.setField(optionStock, "id", optionStockId);
+        return optionStock;
+    }
+
+    private EventItemOptionStock optionStock(Long optionStockId, int stockQuantity, int reservedQuantity) {
+        EventItemOptionStock optionStock = optionStock(optionStockId, stockQuantity);
+        ReflectionTestUtils.setField(optionStock, "reservedQuantity", reservedQuantity);
         return optionStock;
     }
 

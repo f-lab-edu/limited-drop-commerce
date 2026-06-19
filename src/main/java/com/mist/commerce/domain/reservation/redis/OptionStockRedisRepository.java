@@ -18,6 +18,13 @@ public class OptionStockRedisRepository {
             local q = tonumber(ARGV[1])
             if cur >= q then return redis.call('DECRBY', KEYS[1], q) else return -1 end
             """;
+    private static final String TRY_DECREASE_WITH_FALLBACK_LUA = """
+            local cur = redis.call('GET', KEYS[1])
+            if not cur then redis.call('SET', KEYS[1], ARGV[2]); cur = ARGV[2] end
+            cur = tonumber(cur)
+            local q = tonumber(ARGV[1])
+            if cur >= q then return redis.call('DECRBY', KEYS[1], q) else return -1 end
+            """;
 
     private final StringRedisTemplate redisTemplate;
 
@@ -28,6 +35,17 @@ public class OptionStockRedisRepository {
     public long tryDecrease(Long optionStockId, int quantity) {
         DefaultRedisScript<Long> script = new DefaultRedisScript<>(TRY_DECREASE_LUA, Long.class);
         Long result = redisTemplate.execute(script, List.of(key(optionStockId)), String.valueOf(quantity));
+        return result == null ? -1L : result;
+    }
+
+    public long tryDecrease(Long optionStockId, int quantity, int fallbackAvailable) {
+        DefaultRedisScript<Long> script = new DefaultRedisScript<>(TRY_DECREASE_WITH_FALLBACK_LUA, Long.class);
+        Long result = redisTemplate.execute(
+                script,
+                List.of(key(optionStockId)),
+                String.valueOf(quantity),
+                String.valueOf(fallbackAvailable)
+        );
         return result == null ? -1L : result;
     }
 
