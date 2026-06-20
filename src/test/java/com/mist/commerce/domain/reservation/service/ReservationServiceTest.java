@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -23,6 +24,11 @@ import com.mist.commerce.domain.product.entity.ProductOptionValue;
 import com.mist.commerce.domain.product.repository.ProductOptionGroupRepository;
 import com.mist.commerce.domain.product.repository.ProductOptionValueRepository;
 import com.mist.commerce.domain.reservation.entity.InventoryReservation;
+import com.mist.commerce.domain.reservation.exception.IdempotencyKeyReusedException;
+import com.mist.commerce.domain.reservation.exception.ReservationInProgressException;
+import com.mist.commerce.domain.reservation.redis.ClaimResult;
+import com.mist.commerce.domain.reservation.redis.ClaimStatus;
+import com.mist.commerce.domain.reservation.redis.IdempotencyRedisRepository;
 import com.mist.commerce.domain.reservation.redis.OptionStockRedisRepository;
 import com.mist.commerce.domain.reservation.repository.InventoryReservationRepository;
 import com.mist.commerce.global.exception.BusinessException;
@@ -37,6 +43,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
@@ -52,6 +59,9 @@ class ReservationServiceTest {
     private static final Long OPTION_STOCK_ID = 40L;
     private static final Long PRODUCT_OPTION_GROUP_ID = 50L;
     private static final Long PRODUCT_OPTION_VALUE_ID = 60L;
+    private static final String IDEMPOTENCY_KEY = "reservation-idem-key-001";
+    private static final String COMPLETED_PAYLOAD =
+            "{\"orderId\":1000,\"expiresAt\":\"2026-06-17T12:30:00\",\"status\":\"PENDING_PAYMENT\"}";
     private static final Duration PAYMENT_TTL = Duration.ofMinutes(30);
     private static final Clock CLOCK = Clock.fixed(
             Instant.parse("2026-06-17T03:00:00Z"),
@@ -76,10 +86,15 @@ class ReservationServiceTest {
     @Mock
     private OptionStockRedisRepository optionStockRedisRepository;
 
+    @Mock
+    private IdempotencyRedisRepository idempotencyRedisRepository;
+
     private ReservationService reservationService;
 
     @BeforeEach
     void setUp() {
+        lenient().when(idempotencyRedisRepository.claim(any(), any(), any(), any()))
+                .thenReturn(new ClaimResult(ClaimStatus.CLAIMED, null));
         reservationService = new ReservationService(
                 eventRepository,
                 orderRepository,
@@ -87,11 +102,72 @@ class ReservationServiceTest {
                 productOptionGroupRepository,
                 productOptionValueRepository,
                 optionStockRedisRepository,
+                idempotencyRedisRepository,
                 CLOCK);
     }
 
     @Test
-    @DisplayName("TC-RS-U-001: 예약 성공 시 주문과 재고 선점을 저장하고 결제 대기 결과를 반환한다")
+    @DisplayName("TC-RS-IDEM-U-001: claim COMPLETED면 저장 결과를 반환하고 도메인 의존성에 접근하지 않는다")
+    void reserve_whenIdempotencyClaimCompleted_returnsStoredResultWithoutDomainInteractions() {
+        when(idempotencyRedisRepository.claim(any(), any(), any(), any()))
+                .thenReturn(new ClaimResult(ClaimStatus.COMPLETED, COMPLETED_PAYLOAD));
+
+        ReserveResult result = reservationService.reserve(command(2));
+
+        assertThat(result.orderId()).isEqualTo(1000L);
+        assertThat(result.expiresAt()).isEqualTo(NOW.plus(PAYMENT_TTL));
+        assertThat(result.status()).isEqualTo(OrderStatus.PENDING_PAYMENT.name());
+        verifyNoInteractions(
+                eventRepository,
+                orderRepository,
+                productOptionGroupRepository,
+                productOptionValueRepository,
+                optionStockRedisRepository,
+                inventoryReservationRepository);
+    }
+
+    @Test
+    @DisplayName("TC-RS-IDEM-U-002: claim MISMATCH면 IDEMPOTENCY_KEY_REUSED를 던지고 도메인 의존성에 접근하지 않는다")
+    void reserve_whenIdempotencyClaimMismatch_throwsIdempotencyKeyReusedWithoutDomainInteractions() {
+        when(idempotencyRedisRepository.claim(any(), any(), any(), any()))
+                .thenReturn(new ClaimResult(ClaimStatus.MISMATCH, null));
+
+        assertThatThrownBy(() -> reservationService.reserve(command(2)))
+                .isInstanceOf(IdempotencyKeyReusedException.class)
+                .extracting("code")
+                .isEqualTo("IDEMPOTENCY_KEY_REUSED");
+
+        verifyNoInteractions(
+                eventRepository,
+                orderRepository,
+                productOptionGroupRepository,
+                productOptionValueRepository,
+                optionStockRedisRepository,
+                inventoryReservationRepository);
+    }
+
+    @Test
+    @DisplayName("TC-RS-IDEM-U-003: claim IN_PROGRESS면 RESERVATION_IN_PROGRESS를 던지고 도메인 의존성에 접근하지 않는다")
+    void reserve_whenIdempotencyClaimInProgress_throwsReservationInProgressWithoutDomainInteractions() {
+        when(idempotencyRedisRepository.claim(any(), any(), any(), any()))
+                .thenReturn(new ClaimResult(ClaimStatus.IN_PROGRESS, null));
+
+        assertThatThrownBy(() -> reservationService.reserve(command(2)))
+                .isInstanceOf(ReservationInProgressException.class)
+                .extracting("code")
+                .isEqualTo("RESERVATION_IN_PROGRESS");
+
+        verifyNoInteractions(
+                eventRepository,
+                orderRepository,
+                productOptionGroupRepository,
+                productOptionValueRepository,
+                optionStockRedisRepository,
+                inventoryReservationRepository);
+    }
+
+    @Test
+    @DisplayName("TC-RS-U-001/TC-RS-IDEM-U-004: CLAIMED 예약 성공 시 주문과 재고 선점을 저장하고 claim 인자를 검증한다")
     void reserve_whenCommandIsValid_savesOrderAndReservationAndReturnsPendingPaymentResult() {
         Event event = openEvent(item(3, 10, optionStock(10)));
         ProductOptionGroup group = optionGroup("색상");
@@ -132,6 +208,14 @@ class ReservationServiceTest {
         ordered.verify(productOptionValueRepository).findById(PRODUCT_OPTION_VALUE_ID);
         ordered.verify(orderRepository).save(any(Order.class));
         ordered.verify(inventoryReservationRepository).save(any(InventoryReservation.class));
+
+        ArgumentCaptor<String> fingerprintCaptor = ArgumentCaptor.forClass(String.class);
+        verify(idempotencyRedisRepository).claim(
+                org.mockito.ArgumentMatchers.eq(USER_ID),
+                org.mockito.ArgumentMatchers.eq(IDEMPOTENCY_KEY),
+                fingerprintCaptor.capture(),
+                org.mockito.ArgumentMatchers.eq(PAYMENT_TTL));
+        assertThat(fingerprintCaptor.getValue()).isNotBlank();
     }
 
     @Test
@@ -360,7 +444,7 @@ class ReservationServiceTest {
     }
 
     private ReserveCommand command(int quantity) {
-        return new ReserveCommand(USER_ID, EVENT_ID, EVENT_ITEM_ID, OPTION_STOCK_ID, quantity);
+        return new ReserveCommand(USER_ID, EVENT_ID, EVENT_ITEM_ID, OPTION_STOCK_ID, quantity, IDEMPOTENCY_KEY);
     }
 
     private Event readyEvent() {

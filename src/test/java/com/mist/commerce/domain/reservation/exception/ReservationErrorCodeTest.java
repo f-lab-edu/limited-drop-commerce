@@ -55,6 +55,12 @@ class ReservationErrorCodeTest {
     }
 
     @Test
+    @DisplayName("RESERVATION_IN_PROGRESS는 409 CONFLICT를 노출한다")
+    void reservationInProgress_exposesCodeAndHttpStatus() {
+        assertErrorCode(new ReservationInProgressException(), "RESERVATION_IN_PROGRESS", HttpStatus.CONFLICT);
+    }
+
+    @Test
     @DisplayName("선점 에러 코드는 SCREAMING_SNAKE_CASE이다")
     void reservationErrorCode_isScreamingSnakeCase() {
         BusinessException exception = new InvalidReservationQuantityException();
