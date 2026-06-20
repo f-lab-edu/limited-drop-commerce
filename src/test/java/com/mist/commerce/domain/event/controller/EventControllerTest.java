@@ -109,6 +109,7 @@ class EventControllerTest extends MySqlContainerTestSupport {
                       "productId": 10,
                       "price": 150000,
                       "quantity": 100,
+                      "maxPurchasePerCustomer": 10,
                       "optionStocks": [
                         {
                           "optionValueId": 5,
@@ -190,6 +191,7 @@ class EventControllerTest extends MySqlContainerTestSupport {
                 10L,
                 new BigDecimal("150000"),
                 0,
+                10,
                 List.of(validOptionStock())
         );
 
@@ -212,6 +214,7 @@ class EventControllerTest extends MySqlContainerTestSupport {
                 10L,
                 new BigDecimal("150000"),
                 100,
+                10,
                 List.of(invalidStock)
         );
 
@@ -233,6 +236,7 @@ class EventControllerTest extends MySqlContainerTestSupport {
                 10L,
                 new BigDecimal("-1"),
                 100,
+                10,
                 List.of(validOptionStock())
         );
 
@@ -254,6 +258,7 @@ class EventControllerTest extends MySqlContainerTestSupport {
                 10L,
                 null,
                 100,
+                10,
                 List.of(validOptionStock())
         );
 
@@ -354,6 +359,7 @@ class EventControllerTest extends MySqlContainerTestSupport {
                 10L,
                 new BigDecimal("150000"),
                 100,
+                10,
                 List.of(validOptionStock())
         );
     }

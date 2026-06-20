@@ -1,5 +1,7 @@
 package com.mist.commerce.domain.event.entity;
 
+import com.mist.commerce.domain.event.exception.DropEventClosedException;
+import com.mist.commerce.domain.event.exception.DropEventNotOpenException;
 import com.mist.commerce.global.entity.BaseTimeEntity;
 import io.jsonwebtoken.lang.Assert;
 import jakarta.persistence.CascadeType;
@@ -79,6 +81,15 @@ public class Event extends BaseTimeEntity {
             throw new IllegalStateException("Drop event can only be opened from READY status");
         }
         this.status = EventStatus.OPEN;
+    }
+
+    public void verifyParticipable() {
+        if (this.status == EventStatus.READY) {
+            throw new DropEventNotOpenException();
+        }
+        if (this.status == EventStatus.CLOSED) {
+            throw new DropEventClosedException();
+        }
     }
 
     public String getEventStatusName() {

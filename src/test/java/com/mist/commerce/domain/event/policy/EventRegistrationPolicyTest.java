@@ -181,7 +181,7 @@ class EventRegistrationPolicyTest {
     }
 
     private EventCreateRequest.Item item(Long productId) {
-        return new EventCreateRequest.Item(productId, new BigDecimal("150000"), 100, List.of(optionStock()));
+        return new EventCreateRequest.Item(productId, new BigDecimal("150000"), 100, 10, List.of(optionStock()));
     }
 
     private Product product(Long id) {

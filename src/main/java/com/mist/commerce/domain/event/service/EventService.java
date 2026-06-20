@@ -71,6 +71,11 @@ public class EventService {
                                 optionStock.stockQuantity()
                         ))
                         .toList();
-        return EventItem.create(item.productId(), item.price(), item.quantity(), optionStocks);
+        return EventItem.create(
+                item.productId(),
+                item.price(),
+                item.quantity(),
+                item.maxPurchasePerCustomer(),
+                optionStocks);
     }
 }
