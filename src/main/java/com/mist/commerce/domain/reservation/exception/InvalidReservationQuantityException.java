@@ -14,12 +14,4 @@ public class InvalidReservationQuantityException extends BusinessException {
     public InvalidReservationQuantityException() {
         super(CODE, HTTP_STATUS, INVALID_RESERVATION_QUANTITY.getMessage(), ErrorDetail.empty());
     }
-
-    public String getCode() {
-        return CODE;
-    }
-
-    public HttpStatus getHttpStatus() {
-        return HTTP_STATUS;
-    }
 }

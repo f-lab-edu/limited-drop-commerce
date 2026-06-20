@@ -14,12 +14,4 @@ public class PurchaseLimitExceededException extends BusinessException {
     public PurchaseLimitExceededException() {
         super(CODE, HTTP_STATUS, PURCHASE_LIMIT_EXCEEDED.getMessage(), ErrorDetail.empty());
     }
-
-    public String getCode() {
-        return CODE;
-    }
-
-    public HttpStatus getHttpStatus() {
-        return HTTP_STATUS;
-    }
 }

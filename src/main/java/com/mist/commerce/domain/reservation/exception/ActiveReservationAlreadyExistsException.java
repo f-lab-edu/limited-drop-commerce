@@ -14,12 +14,4 @@ public class ActiveReservationAlreadyExistsException extends BusinessException {
     public ActiveReservationAlreadyExistsException() {
         super(CODE, HTTP_STATUS, ACTIVE_RESERVATION_ALREADY_EXISTS.getMessage(), ErrorDetail.empty());
     }
-
-    public String getCode() {
-        return CODE;
-    }
-
-    public HttpStatus getHttpStatus() {
-        return HTTP_STATUS;
-    }
 }

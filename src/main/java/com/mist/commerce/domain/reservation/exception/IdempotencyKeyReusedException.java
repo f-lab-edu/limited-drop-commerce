@@ -14,12 +14,4 @@ public class IdempotencyKeyReusedException extends BusinessException {
     public IdempotencyKeyReusedException() {
         super(CODE, HTTP_STATUS, IDEMPOTENCY_KEY_REUSED.getMessage(), ErrorDetail.empty());
     }
-
-    public String getCode() {
-        return CODE;
-    }
-
-    public HttpStatus getHttpStatus() {
-        return HTTP_STATUS;
-    }
 }

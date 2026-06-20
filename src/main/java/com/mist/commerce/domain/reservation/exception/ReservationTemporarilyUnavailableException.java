@@ -14,12 +14,4 @@ public class ReservationTemporarilyUnavailableException extends BusinessExceptio
     public ReservationTemporarilyUnavailableException() {
         super(CODE, HTTP_STATUS, RESERVATION_TEMPORARILY_UNAVAILABLE.getMessage(), ErrorDetail.empty());
     }
-
-    public String getCode() {
-        return CODE;
-    }
-
-    public HttpStatus getHttpStatus() {
-        return HTTP_STATUS;
-    }
 }
