@@ -20,6 +20,7 @@ import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -218,6 +219,23 @@ class IdempotencyRedisRepositoryTest {
         assertThat(result.resultPayload()).isNull();
         assertStoredValueContains("PENDING", FINGERPRINT);
         assertStoredValueDoesNotContain(RESULT_PAYLOAD);
+    }
+
+    @Test
+    @DisplayName("TC-REDIS-IDEM-LUA-011: Lua 리소스가 클래스패스에 존재하고 claim이 정상 동작한다")
+    void luaResourcesExistAndClaimLoadsScript() throws Exception {
+        ClassPathResource claimScript = new ClassPathResource("redis/lua/idempotency-claim.lua");
+        ClassPathResource completeScript = new ClassPathResource("redis/lua/idempotency-complete.lua");
+
+        assertThat(claimScript.exists()).as("claim Lua resource must exist").isTrue();
+        assertThat(claimScript.contentLength()).as("claim Lua resource must not be empty").isPositive();
+        assertThat(completeScript.exists()).as("complete Lua resource must exist").isTrue();
+        assertThat(completeScript.contentLength()).as("complete Lua resource must not be empty").isPositive();
+
+        ClaimResult result = idempotencyRedisRepository.claim(USER_ID, IDEMPOTENCY_KEY, FINGERPRINT, TTL);
+
+        assertThat(result.status()).isEqualTo(ClaimStatus.CLAIMED);
+        assertStoredValueContains("PENDING", FINGERPRINT);
     }
 
     private void assertStoredValueContains(String... expectedValues) {

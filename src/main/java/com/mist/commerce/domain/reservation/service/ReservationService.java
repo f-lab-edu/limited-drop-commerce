@@ -31,12 +31,14 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.HexFormat;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Service
+@RequiredArgsConstructor
 public class ReservationService {
 
     private static final Duration PAYMENT_TTL = Duration.ofMinutes(30);
@@ -49,26 +51,6 @@ public class ReservationService {
     private final OptionStockRedisRepository optionStockRedisRepository;
     private final IdempotencyRedisRepository idempotencyRedisRepository;
     private final Clock clock;
-
-    public ReservationService(
-            EventRepository eventRepository,
-            OrderRepository orderRepository,
-            InventoryReservationRepository inventoryReservationRepository,
-            ProductOptionGroupRepository productOptionGroupRepository,
-            ProductOptionValueRepository productOptionValueRepository,
-            OptionStockRedisRepository optionStockRedisRepository,
-            IdempotencyRedisRepository idempotencyRedisRepository,
-            Clock clock
-    ) {
-        this.eventRepository = eventRepository;
-        this.orderRepository = orderRepository;
-        this.inventoryReservationRepository = inventoryReservationRepository;
-        this.productOptionGroupRepository = productOptionGroupRepository;
-        this.productOptionValueRepository = productOptionValueRepository;
-        this.optionStockRedisRepository = optionStockRedisRepository;
-        this.idempotencyRedisRepository = idempotencyRedisRepository;
-        this.clock = clock;
-    }
 
     @Transactional
     public ReserveResult reserve(ReserveCommand command) {

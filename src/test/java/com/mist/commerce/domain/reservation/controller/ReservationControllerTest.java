@@ -1,5 +1,6 @@
 package com.mist.commerce.domain.reservation.controller;
 
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -12,7 +13,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.mist.commerce.domain.event.exception.StockExhaustedException;
 import com.mist.commerce.domain.reservation.dto.ReservationRequest;
-import com.mist.commerce.domain.reservation.dto.ReservationResponse;
 import com.mist.commerce.domain.reservation.service.ReservationService;
 import com.mist.commerce.domain.reservation.service.ReserveCommand;
 import com.mist.commerce.domain.reservation.service.ReserveResult;
@@ -95,12 +95,12 @@ class ReservationControllerTest {
         ArgumentCaptor<ReserveCommand> captor = ArgumentCaptor.forClass(ReserveCommand.class);
         verify(reservationService).reserve(captor.capture());
         ReserveCommand command = captor.getValue();
-        org.assertj.core.api.Assertions.assertThat(command.userId()).isEqualTo(USER_ID);
-        org.assertj.core.api.Assertions.assertThat(command.eventId()).isEqualTo(20L);
-        org.assertj.core.api.Assertions.assertThat(command.eventItemId()).isEqualTo(30L);
-        org.assertj.core.api.Assertions.assertThat(command.eventItemOptionStockId()).isEqualTo(40L);
-        org.assertj.core.api.Assertions.assertThat(command.quantity()).isEqualTo(2);
-        org.assertj.core.api.Assertions.assertThat(command.idempotencyKey()).isEqualTo(IDEMPOTENCY_KEY);
+        assertThat(command.userId()).isEqualTo(USER_ID);
+        assertThat(command.eventId()).isEqualTo(20L);
+        assertThat(command.eventItemId()).isEqualTo(30L);
+        assertThat(command.eventItemOptionStockId()).isEqualTo(40L);
+        assertThat(command.quantity()).isEqualTo(2);
+        assertThat(command.idempotencyKey()).isEqualTo(IDEMPOTENCY_KEY);
     }
 
     @Test
