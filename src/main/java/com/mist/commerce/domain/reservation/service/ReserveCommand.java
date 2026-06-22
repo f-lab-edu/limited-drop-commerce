@@ -5,6 +5,17 @@ public record ReserveCommand(
         Long eventId,
         Long eventItemId,
         Long eventItemOptionStockId,
-        int quantity
+        int quantity,
+        String idempotencyKey
 ) {
+
+    public ReserveCommand(
+            Long userId,
+            Long eventId,
+            Long eventItemId,
+            Long eventItemOptionStockId,
+            int quantity
+    ) {
+        this(userId, eventId, eventItemId, eventItemOptionStockId, quantity, null);
+    }
 }

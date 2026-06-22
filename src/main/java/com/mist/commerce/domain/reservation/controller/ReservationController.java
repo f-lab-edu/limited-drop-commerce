@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -28,6 +29,7 @@ public class ReservationController {
     @PostMapping
     public ResponseEntity<ApiResponse<ReservationResponse>> reserve(
             @Valid @RequestBody ReservationRequest request,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
             @AuthenticationPrincipal Long userId
     ) {
         ReserveCommand command = new ReserveCommand(
@@ -35,7 +37,8 @@ public class ReservationController {
                 request.eventId(),
                 request.eventItemId(),
                 request.eventItemOptionStockId(),
-                request.quantity());
+                request.quantity(),
+                idempotencyKey);
         ReserveResult result = reservationService.reserve(command);
 
         return ResponseEntity.status(HttpStatus.CREATED)

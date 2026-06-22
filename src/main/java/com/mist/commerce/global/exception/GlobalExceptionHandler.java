@@ -17,6 +17,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -103,6 +104,23 @@ public class GlobalExceptionHandler {
                 extractFieldName(ex),
                 null,
                 "요청 본문을 읽을 수 없습니다."
+        ));
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.fail(
+                        "VALIDATION_ERROR",
+                        "입력값이 올바르지 않습니다.",
+                        errors,
+                        clock.instant()
+                ));
+    }
+
+    @ExceptionHandler(MissingRequestHeaderException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMissingRequestHeader(MissingRequestHeaderException ex) {
+        List<ErrorDetail> errors = List.of(new ErrorDetail(
+                ex.getHeaderName(),
+                null,
+                "필수 요청 헤더가 누락되었습니다."
         ));
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)

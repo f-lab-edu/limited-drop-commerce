@@ -1,5 +1,6 @@
 package com.mist.commerce.domain.reservation.controller;
 
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -12,7 +13,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.mist.commerce.domain.event.exception.StockExhaustedException;
 import com.mist.commerce.domain.reservation.dto.ReservationRequest;
-import com.mist.commerce.domain.reservation.dto.ReservationResponse;
 import com.mist.commerce.domain.reservation.service.ReservationService;
 import com.mist.commerce.domain.reservation.service.ReserveCommand;
 import com.mist.commerce.domain.reservation.service.ReserveResult;
@@ -48,6 +48,7 @@ class ReservationControllerTest {
 
     private static final Long USER_ID = 10L;
     private static final LocalDateTime EXPIRES_AT = LocalDateTime.of(2026, 6, 19, 13, 30);
+    private static final String IDEMPOTENCY_KEY = "reservation-idem-key-001";
 
     @Autowired
     private MockMvc mockMvc;
@@ -71,13 +72,14 @@ class ReservationControllerTest {
     private OAuth2LoginFailureHandler oAuth2LoginFailureHandler;
 
     @Test
-    @DisplayName("인증된 사용자가 유효 본문으로 예약하면 201과 성공 envelope를 반환하고 userId를 command에 싣는다")
+    @DisplayName("TC-RES-CTRL-IDEM-001: Idempotency-Key 헤더 포함 정상 요청은 command에 idempotencyKey를 싣는다")
     void reserve_withAuthenticatedUserAndValidBody_returns201AndSuccessEnvelope() throws Exception {
         given(reservationService.reserve(any(ReserveCommand.class)))
                 .willReturn(new ReserveResult(1000L, EXPIRES_AT, "PENDING_PAYMENT"));
 
         mockMvc.perform(post("/api/v1/reservations")
                         .with(authentication(authenticatedUser()))
+                        .header("Idempotency-Key", IDEMPOTENCY_KEY)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest())))
                 .andExpect(status().isCreated())
@@ -93,11 +95,27 @@ class ReservationControllerTest {
         ArgumentCaptor<ReserveCommand> captor = ArgumentCaptor.forClass(ReserveCommand.class);
         verify(reservationService).reserve(captor.capture());
         ReserveCommand command = captor.getValue();
-        org.assertj.core.api.Assertions.assertThat(command.userId()).isEqualTo(USER_ID);
-        org.assertj.core.api.Assertions.assertThat(command.eventId()).isEqualTo(20L);
-        org.assertj.core.api.Assertions.assertThat(command.eventItemId()).isEqualTo(30L);
-        org.assertj.core.api.Assertions.assertThat(command.eventItemOptionStockId()).isEqualTo(40L);
-        org.assertj.core.api.Assertions.assertThat(command.quantity()).isEqualTo(2);
+        assertThat(command.userId()).isEqualTo(USER_ID);
+        assertThat(command.eventId()).isEqualTo(20L);
+        assertThat(command.eventItemId()).isEqualTo(30L);
+        assertThat(command.eventItemOptionStockId()).isEqualTo(40L);
+        assertThat(command.quantity()).isEqualTo(2);
+        assertThat(command.idempotencyKey()).isEqualTo(IDEMPOTENCY_KEY);
+    }
+
+    @Test
+    @DisplayName("TC-RES-CTRL-IDEM-002: Idempotency-Key 헤더가 없으면 400 VALIDATION_ERROR를 반환하고 서비스를 호출하지 않는다")
+    void reserve_withoutIdempotencyKeyHeader_returns400ValidationErrorAndDoesNotCallService() throws Exception {
+        mockMvc.perform(post("/api/v1/reservations")
+                        .with(authentication(authenticatedUser()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validRequest())))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.data").value(nullValue()));
+
+        verify(reservationService, never()).reserve(any());
     }
 
     @Test
@@ -105,6 +123,7 @@ class ReservationControllerTest {
     void reserve_withZeroQuantity_returns400ValidationError() throws Exception {
         mockMvc.perform(post("/api/v1/reservations")
                         .with(authentication(authenticatedUser()))
+                        .header("Idempotency-Key", IDEMPOTENCY_KEY)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -127,6 +146,7 @@ class ReservationControllerTest {
     void reserve_withNullRequiredField_returns400ValidationError() throws Exception {
         mockMvc.perform(post("/api/v1/reservations")
                         .with(authentication(authenticatedUser()))
+                        .header("Idempotency-Key", IDEMPOTENCY_KEY)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -152,6 +172,7 @@ class ReservationControllerTest {
 
         mockMvc.perform(post("/api/v1/reservations")
                         .with(authentication(authenticatedUser()))
+                        .header("Idempotency-Key", IDEMPOTENCY_KEY)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest())))
                 .andExpect(status().isBadRequest())

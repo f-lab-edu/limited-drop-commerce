@@ -22,6 +22,7 @@ import com.mist.commerce.domain.product.repository.ProductOptionValueRepository;
 import com.mist.commerce.domain.product.repository.ProductRepository;
 import com.mist.commerce.domain.reservation.entity.InventoryReservation;
 import com.mist.commerce.domain.reservation.entity.ReservationStatus;
+import com.mist.commerce.domain.reservation.redis.OptionStockRedisRepository;
 import com.mist.commerce.domain.reservation.repository.InventoryReservationRepository;
 import com.mist.commerce.global.exception.BusinessException;
 import com.mist.commerce.support.MySqlContainerTestSupport;
@@ -31,7 +32,14 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -40,21 +48,36 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
 @SpringBootTest(classes = {CommerceApplication.class, ReservationServiceIntegrationTest.FixedClockConfig.class})
+@Testcontainers
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class ReservationServiceIntegrationTest extends MySqlContainerTestSupport {
 
     private static final Long USER_ID = 10L;
+    private static final String IDEMPOTENCY_KEY = "reservation-idem-key-001";
+    private static final String CONCURRENT_IDEMPOTENCY_KEY = "reservation-idem-key-concurrent";
+    private static final String ROLLBACK_IDEMPOTENCY_KEY = "reservation-idem-key-rollback";
     private static final Duration PAYMENT_TTL = Duration.ofMinutes(30);
     private static final Clock FIXED_CLOCK = Clock.fixed(
             Instant.parse("2026-06-17T03:00:00Z"),
             ZoneId.of("Asia/Seoul"));
     private static final LocalDateTime NOW = LocalDateTime.now(FIXED_CLOCK);
+
+    @Container
+    static GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
+            .withExposedPorts(6379);
 
     @Autowired
     private ReservationService reservationService;
@@ -78,10 +101,23 @@ class ReservationServiceIntegrationTest extends MySqlContainerTestSupport {
     private ProductOptionValueRepository productOptionValueRepository;
 
     @Autowired
+    private OptionStockRedisRepository optionStockRedisRepository;
+
+    @Autowired
+    private StringRedisTemplate redisTemplate;
+
+    @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @DynamicPropertySource
+    static void redisProps(DynamicPropertyRegistry registry) {
+        registry.add("spring.data.redis.host", redis::getHost);
+        registry.add("spring.data.redis.port", () -> redis.getMappedPort(6379));
+    }
 
     @BeforeEach
     void setUp() {
+        redisTemplate.getConnectionFactory().getConnection().serverCommands().flushDb();
         jdbcTemplate.update("delete from inventory_reservation");
         jdbcTemplate.update("delete from order_item");
         jdbcTemplate.update("delete from orders");
@@ -126,6 +162,7 @@ class ReservationServiceIntegrationTest extends MySqlContainerTestSupport {
 
         EventItemOptionStock optionStock = reloadedOptionStock(fixture);
         assertThat(optionStock.getReservedQuantity()).isEqualTo(2);
+        assertThat(optionStockRedisRepository.getRemaining(fixture.optionStock().getId())).isEqualTo(8L);
     }
 
     @Test
@@ -137,6 +174,7 @@ class ReservationServiceIntegrationTest extends MySqlContainerTestSupport {
 
         assertNoOrderOrReservationStored();
         assertThat(reloadedOptionStock(fixture).getReservedQuantity()).isZero();
+        assertThat(optionStockRedisRepository.getRemaining(fixture.optionStock().getId())).isEqualTo(1L);
     }
 
     @Test
@@ -148,6 +186,7 @@ class ReservationServiceIntegrationTest extends MySqlContainerTestSupport {
 
         assertNoOrderOrReservationStored();
         assertThat(reloadedOptionStock(fixture).getReservedQuantity()).isZero();
+        assertThat(optionStockRedisRepository.getRemaining(fixture.optionStock().getId())).isZero();
     }
 
     @Test
@@ -163,6 +202,7 @@ class ReservationServiceIntegrationTest extends MySqlContainerTestSupport {
         assertThat(orderRepository.findAll()).hasSize(1);
         assertThat(inventoryReservationRepository.findAll()).isEmpty();
         assertThat(reloadedOptionStock(fixture).getReservedQuantity()).isZero();
+        assertThat(optionStockRedisRepository.getRemaining(fixture.optionStock().getId())).isNull();
     }
 
     @Test
@@ -174,6 +214,7 @@ class ReservationServiceIntegrationTest extends MySqlContainerTestSupport {
 
         assertNoOrderOrReservationStored();
         assertThat(reloadedOptionStock(fixture).getReservedQuantity()).isZero();
+        assertThat(optionStockRedisRepository.getRemaining(fixture.optionStock().getId())).isNull();
     }
 
     @Test
@@ -185,6 +226,7 @@ class ReservationServiceIntegrationTest extends MySqlContainerTestSupport {
 
         assertNoOrderOrReservationStored();
         assertThat(reloadedOptionStock(fixture).getReservedQuantity()).isZero();
+        assertThat(optionStockRedisRepository.getRemaining(fixture.optionStock().getId())).isNull();
     }
 
     @Test
@@ -197,6 +239,125 @@ class ReservationServiceIntegrationTest extends MySqlContainerTestSupport {
 
         assertNoOrderOrReservationStored();
         assertThat(reloadedOptionStock(fixture).getReservedQuantity()).isZero();
+    }
+
+    @Test
+    @DisplayName("TC-RS-IDEM-I-001: 최초 예약은 주문을 생성하고 멱등성 키를 DONE으로 기록한다")
+    void reserve_withNewIdempotencyKey_createsOrderAndCompletesIdempotencyRecord() {
+        Fixture fixture = persistFixture(EventStatus.OPEN, 10, "색상", "Black");
+
+        ReserveResult result = reservationService.reserve(command(fixture, 2, IDEMPOTENCY_KEY));
+
+        assertThat(result.status()).isEqualTo(OrderStatus.PENDING_PAYMENT.name());
+        assertThat(orderRepository.findAll()).hasSize(1);
+        assertThat(inventoryReservationRepository.findAll()).hasSize(1);
+        assertThat(optionStockRedisRepository.getRemaining(fixture.optionStock().getId())).isEqualTo(8L);
+        assertThat(redisTemplate.opsForValue().get(idempotencyRedisKey(IDEMPOTENCY_KEY))).contains("DONE");
+        assertThat(redisTemplate.getExpire(idempotencyRedisKey(IDEMPOTENCY_KEY), TimeUnit.SECONDS)).isPositive();
+    }
+
+    @Test
+    @DisplayName("TC-RS-IDEM-I-002: 동일 키와 동일 바디 재시도는 저장된 결과를 반환하고 주문과 재고를 추가 변경하지 않는다")
+    void reserve_withSameIdempotencyKeyAndSameBody_replaysStoredResultWithoutSideEffects() {
+        Fixture fixture = persistFixture(EventStatus.OPEN, 10, "색상", "Black");
+        ReserveCommand command = command(fixture, 2, IDEMPOTENCY_KEY);
+        ReserveResult first = reservationService.reserve(command);
+        Long stockAfterFirst = optionStockRedisRepository.getRemaining(fixture.optionStock().getId());
+        int orderCountAfterFirst = orderRepository.findAll().size();
+        int reservationCountAfterFirst = inventoryReservationRepository.findAll().size();
+
+        ReserveResult second = reservationService.reserve(command);
+
+        assertThat(second.orderId()).isEqualTo(first.orderId());
+        assertThat(second.expiresAt()).isEqualTo(first.expiresAt());
+        assertThat(second.status()).isEqualTo(first.status());
+        assertThat(orderRepository.findAll()).hasSize(orderCountAfterFirst);
+        assertThat(inventoryReservationRepository.findAll()).hasSize(reservationCountAfterFirst);
+        assertThat(optionStockRedisRepository.getRemaining(fixture.optionStock().getId())).isEqualTo(stockAfterFirst);
+    }
+
+    @Test
+    @DisplayName("TC-RS-IDEM-I-003: 동일 키와 다른 바디 재시도는 IDEMPOTENCY_KEY_REUSED를 던지고 부작용이 없다")
+    void reserve_withSameIdempotencyKeyAndDifferentBody_throwsIdempotencyKeyReusedWithoutSideEffects() {
+        Fixture fixture = persistFixture(EventStatus.OPEN, 10, "색상", "Black");
+        reservationService.reserve(command(fixture, 2, IDEMPOTENCY_KEY));
+        Long stockAfterFirst = optionStockRedisRepository.getRemaining(fixture.optionStock().getId());
+        int orderCountAfterFirst = orderRepository.findAll().size();
+        int reservationCountAfterFirst = inventoryReservationRepository.findAll().size();
+
+        assertBusinessException("IDEMPOTENCY_KEY_REUSED", () -> reservationService.reserve(command(fixture, 3, IDEMPOTENCY_KEY)));
+
+        assertThat(orderRepository.findAll()).hasSize(orderCountAfterFirst);
+        assertThat(inventoryReservationRepository.findAll()).hasSize(reservationCountAfterFirst);
+        assertThat(optionStockRedisRepository.getRemaining(fixture.optionStock().getId())).isEqualTo(stockAfterFirst);
+        assertThat(reloadedOptionStock(fixture).getReservedQuantity()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("TC-RS-IDEM-I-004: 동일 키 동시 요청은 주문을 하나만 생성하고 재고를 한 번만 차감한다")
+    void reserve_concurrentlyWithSameIdempotencyKey_createsOnlyOneOrder() throws Exception {
+        Fixture fixture = persistFixture(EventStatus.OPEN, 10, "색상", "Black");
+        int threadCount = 10;
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch ready = new CountDownLatch(threadCount);
+        CountDownLatch start = new CountDownLatch(1);
+        AtomicInteger successCount = new AtomicInteger();
+        AtomicInteger inProgressCount = new AtomicInteger();
+        AtomicInteger unexpectedFailureCount = new AtomicInteger();
+        List<Future<?>> futures = new ArrayList<>();
+
+        for (int i = 0; i < threadCount; i++) {
+            futures.add(executor.submit(() -> {
+                ready.countDown();
+                start.await();
+
+                try {
+                    ReserveResult result = reservationService.reserve(command(fixture, 1, CONCURRENT_IDEMPOTENCY_KEY));
+                    if (result.orderId() != null) {
+                        successCount.incrementAndGet();
+                    }
+                } catch (BusinessException ex) {
+                    if ("RESERVATION_IN_PROGRESS".equals(ex.getCode())) {
+                        inProgressCount.incrementAndGet();
+                    } else {
+                        unexpectedFailureCount.incrementAndGet();
+                    }
+                }
+                return null;
+            }));
+        }
+
+        assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue();
+        start.countDown();
+        for (Future<?> future : futures) {
+            future.get(10, TimeUnit.SECONDS);
+        }
+        executor.shutdown();
+        assertThat(executor.awaitTermination(5, TimeUnit.SECONDS)).isTrue();
+
+        assertThat(orderRepository.findAll()).hasSize(1);
+        assertThat(inventoryReservationRepository.findAll()).hasSize(1);
+        assertThat(optionStockRedisRepository.getRemaining(fixture.optionStock().getId())).isEqualTo(9L);
+        assertThat(successCount.get() + inProgressCount.get()).isEqualTo(threadCount);
+        assertThat(unexpectedFailureCount.get()).isZero();
+    }
+
+    @Test
+    @DisplayName("TC-RS-IDEM-I-005: 예약 롤백 후 멱등성 키가 release되어 동일 키 재시도가 IN_PROGRESS로 막히지 않는다")
+    void reserve_whenTransactionRollsBack_releasesIdempotencyKeyForRetry() {
+        Fixture fixture = persistFixture(EventStatus.OPEN, 1, "색상", "Black");
+
+        assertBusinessException("INSUFFICIENT_STOCK", () -> reservationService.reserve(command(fixture, 2, ROLLBACK_IDEMPOTENCY_KEY)));
+        assertNoOrderOrReservationStored();
+
+        jdbcTemplate.update("update event_item_option_stock set stock_quantity = ? where id = ?", 10, fixture.optionStock().getId());
+        optionStockRedisRepository.initialize(fixture.optionStock().getId(), 10);
+        ReserveResult retry = reservationService.reserve(command(fixture, 2, ROLLBACK_IDEMPOTENCY_KEY));
+
+        assertThat(retry.status()).isEqualTo(OrderStatus.PENDING_PAYMENT.name());
+        assertThat(orderRepository.findAll()).hasSize(1);
+        assertThat(inventoryReservationRepository.findAll()).hasSize(1);
+        assertThat(optionStockRedisRepository.getRemaining(fixture.optionStock().getId())).isEqualTo(8L);
     }
 
     private void assertNoOrderOrReservationStored() {
@@ -212,12 +373,21 @@ class ReservationServiceIntegrationTest extends MySqlContainerTestSupport {
     }
 
     private ReserveCommand command(Fixture fixture, int quantity) {
+        return command(fixture, quantity, IDEMPOTENCY_KEY);
+    }
+
+    private ReserveCommand command(Fixture fixture, int quantity, String idempotencyKey) {
         return new ReserveCommand(
                 USER_ID,
                 fixture.event().getId(),
                 fixture.eventItem().getId(),
                 fixture.optionStock().getId(),
-                quantity);
+                quantity,
+                idempotencyKey);
+    }
+
+    private String idempotencyRedisKey(String idempotencyKey) {
+        return "idem:" + USER_ID + ":" + idempotencyKey;
     }
 
     private Order order(Fixture fixture) {
