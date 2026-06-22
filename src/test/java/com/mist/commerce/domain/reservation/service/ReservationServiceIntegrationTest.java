@@ -166,6 +166,21 @@ class ReservationServiceIntegrationTest extends MySqlContainerTestSupport {
     }
 
     @Test
+    @DisplayName("TC-RS-EXPIRY-MARKER-001: reserve 커밋 성공 시 reservation:expiry:{orderId} 마커 키가 TTL과 함께 등록된다")
+    void reserve_whenCommitSucceeds_registersExpiryMarker() {
+        Fixture fixture = persistFixture(EventStatus.OPEN, 10, "색상", "Black");
+
+        ReserveResult result = reservationService.reserve(command(fixture, 2));
+
+        String markerKey = "reservation:expiry:" + result.orderId();
+        assertThat(redisTemplate.hasKey(markerKey)).isTrue();
+        Long ttlSeconds = redisTemplate.getExpire(markerKey, TimeUnit.SECONDS);
+        assertThat(ttlSeconds).isNotNull();
+        assertThat(ttlSeconds).isPositive();
+        assertThat(ttlSeconds).isLessThanOrEqualTo(1800L);
+    }
+
+    @Test
     @DisplayName("TC-RS-I-002: 재고가 부족하면 주문과 선점이 저장되지 않고 옵션 재고 차감도 롤백된다")
     void reserve_whenInsufficientStock_rollsBackAllChanges() {
         Fixture fixture = persistFixture(EventStatus.OPEN, 1, "색상", "Black");
