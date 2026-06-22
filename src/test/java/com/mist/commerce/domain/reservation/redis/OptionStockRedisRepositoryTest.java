@@ -19,6 +19,7 @@ import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -219,6 +220,24 @@ class OptionStockRedisRepositoryTest {
         assertThat(failureCount.get()).isEqualTo(threadCount - fallbackAvailable);
         assertThat(unexpectedNegativeCount.get()).isZero();
         assertThat(optionStockRedisRepository.getRemaining(OPTION_STOCK_ID)).isZero();
+    }
+
+    @Test
+    @DisplayName("TC-REDIS-STOCK-LUA-011: Lua 리소스가 클래스패스에 존재하고 tryDecrease가 정상 동작한다")
+    void luaResourcesExistAndTryDecreaseLoadsScript() throws Exception {
+        ClassPathResource tryDecreaseScript = new ClassPathResource("redis/lua/option-stock-try-decrease.lua");
+        ClassPathResource fallbackScript = new ClassPathResource("redis/lua/option-stock-try-decrease-fallback.lua");
+
+        assertThat(tryDecreaseScript.exists()).as("tryDecrease Lua resource must exist").isTrue();
+        assertThat(tryDecreaseScript.contentLength()).as("tryDecrease Lua resource must not be empty").isPositive();
+        assertThat(fallbackScript.exists()).as("fallback Lua resource must exist").isTrue();
+        assertThat(fallbackScript.contentLength()).as("fallback Lua resource must not be empty").isPositive();
+
+        optionStockRedisRepository.initialize(OPTION_STOCK_ID, 10);
+
+        long remaining = optionStockRedisRepository.tryDecrease(OPTION_STOCK_ID, 3);
+
+        assertThat(remaining).isEqualTo(7L);
     }
 
     @SpringBootConfiguration
