@@ -22,6 +22,7 @@ import com.mist.commerce.domain.reservation.redis.ClaimResult;
 import com.mist.commerce.domain.reservation.redis.ClaimStatus;
 import com.mist.commerce.domain.reservation.redis.IdempotencyRedisRepository;
 import com.mist.commerce.domain.reservation.redis.OptionStockRedisRepository;
+import com.mist.commerce.domain.reservation.redis.ReservationExpiryRedisRepository;
 import com.mist.commerce.domain.reservation.repository.InventoryReservationRepository;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -50,6 +51,7 @@ public class ReservationService {
     private final ProductOptionValueRepository productOptionValueRepository;
     private final OptionStockRedisRepository optionStockRedisRepository;
     private final IdempotencyRedisRepository idempotencyRedisRepository;
+    private final ReservationExpiryRedisRepository reservationExpiryRedisRepository;
     private final Clock clock;
 
     @Transactional
@@ -161,6 +163,7 @@ public class ReservationService {
                 ReserveResult result = resultHolder[0];
                 if (result != null) {
                     idempotencyRedisRepository.complete(userId, idempotencyKey, fingerprint, serializeResult(result));
+                    reservationExpiryRedisRepository.markExpiry(result.orderId(), PAYMENT_TTL);
                 }
             }
 
