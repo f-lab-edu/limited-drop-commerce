@@ -21,13 +21,25 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     boolean existsByUserIdAndEventIdAndStatus(Long userId, Long eventId, OrderStatus status);
 
     @Modifying(clearAutomatically = true)
-    @Query("UPDATE Order o SET o.status = com.mist.commerce.domain.order.entity.OrderStatus.EXPIRED, o.expiredAt = :now "
-            + "WHERE o.id = :id AND o.status = com.mist.commerce.domain.order.entity.OrderStatus.PENDING_PAYMENT")
-    int expireIfPending(@Param("id") Long id, @Param("now") LocalDateTime now);
+    @Query("UPDATE Order o SET o.status = :to, o.expiredAt = :now WHERE o.id = :id AND o.status = :from")
+    int expireIfPending(
+            @Param("id") Long id,
+            @Param("now") LocalDateTime now,
+            @Param("from") OrderStatus from,
+            @Param("to") OrderStatus to);
 
-    @Query("SELECT o.id FROM Order o "
-            + "WHERE o.status = com.mist.commerce.domain.order.entity.OrderStatus.PENDING_PAYMENT AND o.expiresAt < :now "
-            + "ORDER BY o.expiresAt ASC")
-    List<Long> findExpiredPendingPaymentIds(@Param("now") LocalDateTime now, Pageable pageable);
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE Order o SET o.status = :to, o.cancelledAt = :now WHERE o.id = :id AND o.status = :from")
+    int cancelIfPending(
+            @Param("id") Long id,
+            @Param("now") LocalDateTime now,
+            @Param("from") OrderStatus from,
+            @Param("to") OrderStatus to);
+
+    @Query("SELECT o.id FROM Order o WHERE o.status = :status AND o.expiresAt < :now ORDER BY o.expiresAt ASC")
+    List<Long> findExpiredPendingPaymentIds(
+            @Param("status") OrderStatus status,
+            @Param("now") LocalDateTime now,
+            Pageable pageable);
 
 }

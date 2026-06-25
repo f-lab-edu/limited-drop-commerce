@@ -2,6 +2,7 @@ package com.mist.commerce.domain.reservation.service;
 
 import com.mist.commerce.domain.event.exception.EventItemOptionNotFoundException;
 import com.mist.commerce.domain.event.repository.EventItemOptionStockRepository;
+import com.mist.commerce.domain.order.entity.OrderStatus;
 import com.mist.commerce.domain.order.repository.OrderRepository;
 import com.mist.commerce.domain.reservation.entity.InventoryReservation;
 import com.mist.commerce.domain.reservation.entity.ReservationStatus;
@@ -32,7 +33,11 @@ public class ExpiryRecoveryService {
     @Transactional
     public void recover(Long orderId) {
         LocalDateTime now = LocalDateTime.now(clock);
-        if (orderRepository.expireIfPending(orderId, now) == 0) {
+        if (orderRepository.expireIfPending(
+                orderId,
+                now,
+                OrderStatus.PENDING_PAYMENT,
+                OrderStatus.EXPIRED) == 0) {
             return;
         }
 

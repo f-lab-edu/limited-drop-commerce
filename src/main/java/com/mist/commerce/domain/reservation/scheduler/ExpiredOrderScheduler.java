@@ -1,5 +1,6 @@
 package com.mist.commerce.domain.reservation.scheduler;
 
+import com.mist.commerce.domain.order.entity.OrderStatus;
 import com.mist.commerce.domain.order.repository.OrderRepository;
 import com.mist.commerce.domain.reservation.service.ExpiryRecoveryService;
 import java.time.Clock;
@@ -25,7 +26,9 @@ public class ExpiredOrderScheduler {
     @Scheduled(fixedDelay = 30_000)
     public void recoverExpiredOrders() {
         List<Long> ids = orderRepository.findExpiredPendingPaymentIds(
-                LocalDateTime.now(clock), PageRequest.of(0, BATCH_SIZE));
+                OrderStatus.PENDING_PAYMENT,
+                LocalDateTime.now(clock),
+                PageRequest.of(0, BATCH_SIZE));
 
         for (Long orderId : ids) {
             try {
