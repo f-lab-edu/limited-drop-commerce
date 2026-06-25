@@ -19,6 +19,7 @@ import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
@@ -95,11 +96,19 @@ class OrderRepositoryTest extends MySqlContainerTestSupport {
         Order saved = orderRepository.saveAndFlush(order(USER_ID, EVENT_ID));
         clearPersistenceContext();
 
-        int firstAffectedRows = orderRepository.expireIfPending(saved.getId(), now);
+        int firstAffectedRows = orderRepository.expireIfPending(
+                saved.getId(),
+                now,
+                OrderStatus.PENDING_PAYMENT,
+                OrderStatus.EXPIRED);
         clearPersistenceContext();
         Order expired = orderRepository.findById(saved.getId()).orElseThrow();
 
-        int secondAffectedRows = orderRepository.expireIfPending(saved.getId(), now);
+        int secondAffectedRows = orderRepository.expireIfPending(
+                saved.getId(),
+                now,
+                OrderStatus.PENDING_PAYMENT,
+                OrderStatus.EXPIRED);
         clearPersistenceContext();
         Order reloaded = orderRepository.findById(saved.getId()).orElseThrow();
 
@@ -123,8 +132,16 @@ class OrderRepositoryTest extends MySqlContainerTestSupport {
         orderRepository.saveAllAndFlush(List.of(paid, expired));
         clearPersistenceContext();
 
-        int paidAffectedRows = orderRepository.expireIfPending(paid.getId(), now);
-        int expiredAffectedRows = orderRepository.expireIfPending(expired.getId(), now);
+        int paidAffectedRows = orderRepository.expireIfPending(
+                paid.getId(),
+                now,
+                OrderStatus.PENDING_PAYMENT,
+                OrderStatus.EXPIRED);
+        int expiredAffectedRows = orderRepository.expireIfPending(
+                expired.getId(),
+                now,
+                OrderStatus.PENDING_PAYMENT,
+                OrderStatus.EXPIRED);
         clearPersistenceContext();
         Order reloadedPaid = orderRepository.findById(paid.getId()).orElseThrow();
         Order reloadedExpired = orderRepository.findById(expired.getId()).orElseThrow();
@@ -158,7 +175,10 @@ class OrderRepositoryTest extends MySqlContainerTestSupport {
                 alreadyExpired));
         clearPersistenceContext();
 
-        List<Long> ids = orderRepository.findExpiredPendingPaymentIds(now, PageRequest.of(0, 10));
+        List<Long> ids = orderRepository.findExpiredPendingPaymentIds(
+                OrderStatus.PENDING_PAYMENT,
+                now,
+                PageRequest.of(0, 10));
 
         assertThat(ids).containsExactly(expiredPendingB.getId(), expiredPendingA.getId());
     }
@@ -173,9 +193,101 @@ class OrderRepositoryTest extends MySqlContainerTestSupport {
         orderRepository.saveAllAndFlush(List.of(first, second, third));
         clearPersistenceContext();
 
-        List<Long> ids = orderRepository.findExpiredPendingPaymentIds(now, PageRequest.of(0, 2));
+        List<Long> ids = orderRepository.findExpiredPendingPaymentIds(
+                OrderStatus.PENDING_PAYMENT,
+                now,
+                PageRequest.of(0, 2));
 
         assertThat(ids).containsExactly(first.getId(), second.getId());
+    }
+
+    @Test
+    @DisplayName("TC-OC-REP-01: PENDING_PAYMENT 주문을 한 번만 CANCELLED로 전이한다")
+    void cancelIfPending_whenPendingPaymentOrderExists_cancelsOnlyOnce() {
+        LocalDateTime now = LocalDateTime.of(2026, 6, 17, 12, 10);
+        Order saved = orderRepository.saveAndFlush(order(USER_ID, EVENT_ID));
+        clearPersistenceContext();
+
+        int firstAffectedRows = orderRepository.cancelIfPending(
+                saved.getId(),
+                now,
+                OrderStatus.PENDING_PAYMENT,
+                OrderStatus.CANCELLED);
+        clearPersistenceContext();
+        Order cancelled = orderRepository.findById(saved.getId()).orElseThrow();
+
+        int secondAffectedRows = orderRepository.cancelIfPending(
+                saved.getId(),
+                now.plusSeconds(1),
+                OrderStatus.PENDING_PAYMENT,
+                OrderStatus.CANCELLED);
+        clearPersistenceContext();
+        Order reloaded = orderRepository.findById(saved.getId()).orElseThrow();
+
+        assertThat(firstAffectedRows).isEqualTo(1);
+        assertThat(cancelled.getStatus()).isEqualTo(OrderStatus.CANCELLED);
+        assertThat(cancelled.getCancelledAt()).isEqualTo(now);
+        assertThat(secondAffectedRows).isZero();
+        assertThat(reloaded.getStatus()).isEqualTo(OrderStatus.CANCELLED);
+        assertThat(reloaded.getCancelledAt()).isEqualTo(now);
+    }
+
+    @Test
+    @DisplayName("TC-OC-REP-02: PENDING_PAYMENT가 아닌 주문은 변경하지 않는다")
+    void cancelIfPending_whenOrderIsNotPendingPayment_doesNotChangeState() {
+        LocalDateTime existingCancelledAt = LocalDateTime.of(2026, 6, 17, 12, 5);
+        LocalDateTime existingExpiredAt = LocalDateTime.of(2026, 6, 17, 12, 30);
+        LocalDateTime now = LocalDateTime.of(2026, 6, 17, 12, 31);
+        Order paid = order(USER_ID, EVENT_ID);
+        paid.markPaid();
+        Order expired = order(USER_ID, EVENT_ID);
+        expired.expire(existingExpiredAt);
+        Order paymentFailed = order(USER_ID, EVENT_ID);
+        ReflectionTestUtils.setField(paymentFailed, "status", OrderStatus.PAYMENT_FAILED);
+        Order cancelled = order(USER_ID, EVENT_ID);
+        cancelled.cancel(existingCancelledAt);
+        orderRepository.saveAllAndFlush(List.of(paid, expired, paymentFailed, cancelled));
+        clearPersistenceContext();
+
+        int paidAffectedRows = orderRepository.cancelIfPending(
+                paid.getId(),
+                now,
+                OrderStatus.PENDING_PAYMENT,
+                OrderStatus.CANCELLED);
+        int expiredAffectedRows = orderRepository.cancelIfPending(
+                expired.getId(),
+                now,
+                OrderStatus.PENDING_PAYMENT,
+                OrderStatus.CANCELLED);
+        int paymentFailedAffectedRows = orderRepository.cancelIfPending(
+                paymentFailed.getId(),
+                now,
+                OrderStatus.PENDING_PAYMENT,
+                OrderStatus.CANCELLED);
+        int cancelledAffectedRows = orderRepository.cancelIfPending(
+                cancelled.getId(),
+                now,
+                OrderStatus.PENDING_PAYMENT,
+                OrderStatus.CANCELLED);
+        clearPersistenceContext();
+
+        Order reloadedPaid = orderRepository.findById(paid.getId()).orElseThrow();
+        Order reloadedExpired = orderRepository.findById(expired.getId()).orElseThrow();
+        Order reloadedPaymentFailed = orderRepository.findById(paymentFailed.getId()).orElseThrow();
+        Order reloadedCancelled = orderRepository.findById(cancelled.getId()).orElseThrow();
+
+        assertThat(paidAffectedRows).isZero();
+        assertThat(reloadedPaid.getStatus()).isEqualTo(OrderStatus.PAID);
+        assertThat(reloadedPaid.getCancelledAt()).isNull();
+        assertThat(expiredAffectedRows).isZero();
+        assertThat(reloadedExpired.getStatus()).isEqualTo(OrderStatus.EXPIRED);
+        assertThat(reloadedExpired.getCancelledAt()).isNull();
+        assertThat(paymentFailedAffectedRows).isZero();
+        assertThat(reloadedPaymentFailed.getStatus()).isEqualTo(OrderStatus.PAYMENT_FAILED);
+        assertThat(reloadedPaymentFailed.getCancelledAt()).isNull();
+        assertThat(cancelledAffectedRows).isZero();
+        assertThat(reloadedCancelled.getStatus()).isEqualTo(OrderStatus.CANCELLED);
+        assertThat(reloadedCancelled.getCancelledAt()).isEqualTo(existingCancelledAt);
     }
 
     private Order order(Long userId, Long eventId) {

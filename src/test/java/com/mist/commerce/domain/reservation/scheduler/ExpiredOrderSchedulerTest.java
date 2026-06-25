@@ -8,6 +8,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.mist.commerce.domain.order.entity.OrderStatus;
 import com.mist.commerce.domain.order.repository.OrderRepository;
 import com.mist.commerce.domain.reservation.service.ExpiryRecoveryService;
 import java.time.Clock;
@@ -53,7 +54,10 @@ class ExpiredOrderSchedulerTest {
     @Test
     @DisplayName("TC-EXPIRED-SCHED-001: 조회된 만료 PENDING 주문만 복구 위임한다")
     void recoverExpiredOrders_recoversOnlyExpiredPendingOrderIdsReturnedByRepository() {
-        when(orderRepository.findExpiredPendingPaymentIds(eq(NOW), eq(PageRequest.of(0, 100))))
+        when(orderRepository.findExpiredPendingPaymentIds(
+                eq(OrderStatus.PENDING_PAYMENT),
+                eq(NOW),
+                eq(PageRequest.of(0, 100))))
                 .thenReturn(List.of(1L, 2L));
 
         scheduler.recoverExpiredOrders();
@@ -66,7 +70,10 @@ class ExpiredOrderSchedulerTest {
     @Test
     @DisplayName("TC-EXPIRED-SCHED-002: 개별 주문 복구 예외를 격리하고 다음 주문을 계속 처리한다")
     void recoverExpiredOrders_continuesWhenOneRecoveryThrows() {
-        when(orderRepository.findExpiredPendingPaymentIds(eq(NOW), eq(PageRequest.of(0, 100))))
+        when(orderRepository.findExpiredPendingPaymentIds(
+                eq(OrderStatus.PENDING_PAYMENT),
+                eq(NOW),
+                eq(PageRequest.of(0, 100))))
                 .thenReturn(List.of(1L, 2L, 3L));
         doThrow(new RuntimeException()).when(expiryRecoveryService).recover(2L);
 
@@ -83,7 +90,10 @@ class ExpiredOrderSchedulerTest {
     void recoverExpiredOrders_queriesExpiredOrdersWithBatchSize() {
         scheduler.recoverExpiredOrders();
 
-        verify(orderRepository).findExpiredPendingPaymentIds(eq(NOW), pageableCaptor.capture());
+        verify(orderRepository).findExpiredPendingPaymentIds(
+                eq(OrderStatus.PENDING_PAYMENT),
+                eq(NOW),
+                pageableCaptor.capture());
         Pageable pageable = pageableCaptor.getValue();
         assertThat(pageable.getPageNumber()).isZero();
         assertThat(pageable.getPageSize()).isEqualTo(100);
