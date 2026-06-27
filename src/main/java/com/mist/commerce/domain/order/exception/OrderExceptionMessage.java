@@ -5,6 +5,7 @@ public enum OrderExceptionMessage {
     ORDER_FORBIDDEN("주문에 접근할 수 없습니다."),
     ORDER_ALREADY_CANCELLED("이미 취소된 주문입니다."),
     ORDER_CANNOT_CANCEL("취소할 수 없는 주문입니다."),
+    ORDER_CANNOT_PAY("결제할 수 없는 주문입니다."),
     ORDER_CANCEL_TEMPORARILY_UNAVAILABLE("현재 주문 취소를 처리할 수 없습니다.");
 
     private final String message;
