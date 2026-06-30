@@ -16,6 +16,6 @@ public class PaymentFailedException extends BusinessException {
     }
 
     public PaymentFailedException(Throwable cause) {
-        super(CODE, HTTP_STATUS, PAYMENT_FAILED.getMessage(), cause);
+        super(CODE, HTTP_STATUS, PAYMENT_FAILED.getMessage(), ErrorDetail.empty(), cause);
     }
 }

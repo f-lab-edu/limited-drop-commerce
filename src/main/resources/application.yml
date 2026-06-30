@@ -1,6 +1,8 @@
 spring:
   application:
     name: commerce
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
   config:
     import:
       - classpath:/yml/application-local.yml
@@ -11,3 +13,8 @@ spring:
 toss:
   base-url: https://api.tosspayments.com
   secret-key: ${TOSS_SECRET_KEY:}
+
+payment:
+  kafka:
+    topic:
+      completed: payment.completed

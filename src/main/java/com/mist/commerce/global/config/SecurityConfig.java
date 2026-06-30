@@ -47,7 +47,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/products", "/api/v1/events")
                         .hasAuthority("ROLE_COMPANY")
                         .requestMatchers(HttpMethod.GET, "/api/v1/products/**").permitAll()
-                        .requestMatchers("/api/v1/orders/**", "/api/v1/reservations/**").authenticated()
+                        .requestMatchers(
+                                "/api/v1/orders/**",
+                                "/api/v1/reservations/**",
+                                "/api/v1/payments/**"
+                        ).authenticated()
                         .requestMatchers(
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
