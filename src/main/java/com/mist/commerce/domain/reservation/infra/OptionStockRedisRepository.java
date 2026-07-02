@@ -1,10 +1,8 @@
-package com.mist.commerce.domain.reservation.redis;
+package com.mist.commerce.domain.reservation.infra;
 
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -12,9 +10,7 @@ import org.springframework.stereotype.Component;
 public class OptionStockRedisRepository {
 
     private static final String KEY_PREFIX = "stock:option:";
-    private static final DefaultRedisScript<Long> TRY_DECREASE_SCRIPT = tryDecreaseScript();
-    private static final DefaultRedisScript<Long> TRY_DECREASE_WITH_FALLBACK_SCRIPT = tryDecreaseWithFallbackScript();
-
+    private final OptionStockRedisScripts optionStockRedisScripts;
     private final StringRedisTemplate redisTemplate;
 
     public void initialize(Long optionStockId, int availableQuantity) {
@@ -22,13 +18,17 @@ public class OptionStockRedisRepository {
     }
 
     public long tryDecrease(Long optionStockId, int quantity) {
-        Long result = redisTemplate.execute(TRY_DECREASE_SCRIPT, List.of(key(optionStockId)), String.valueOf(quantity));
+        Long result = redisTemplate.execute(
+                optionStockRedisScripts.getDecreaseScript(),
+                List.of(key(optionStockId)),
+                String.valueOf(quantity)
+        );
         return result == null ? -1L : result;
     }
 
     public long tryDecrease(Long optionStockId, int quantity, int fallbackAvailable) {
         Long result = redisTemplate.execute(
-                TRY_DECREASE_WITH_FALLBACK_SCRIPT,
+                optionStockRedisScripts.getTryDecreaseWithFallbackScript(),
                 List.of(key(optionStockId)),
                 String.valueOf(quantity),
                 String.valueOf(fallbackAvailable)
@@ -47,19 +47,5 @@ public class OptionStockRedisRepository {
 
     private String key(Long optionStockId) {
         return KEY_PREFIX + optionStockId;
-    }
-
-    private static DefaultRedisScript<Long> tryDecreaseScript() {
-        DefaultRedisScript<Long> script = new DefaultRedisScript<>();
-        script.setLocation(new ClassPathResource("redis/lua/option-stock-try-decrease.lua"));
-        script.setResultType(Long.class);
-        return script;
-    }
-
-    private static DefaultRedisScript<Long> tryDecreaseWithFallbackScript() {
-        DefaultRedisScript<Long> script = new DefaultRedisScript<>();
-        script.setLocation(new ClassPathResource("redis/lua/option-stock-try-decrease-fallback.lua"));
-        script.setResultType(Long.class);
-        return script;
     }
 }

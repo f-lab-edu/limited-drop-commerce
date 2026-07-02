@@ -1,4 +1,4 @@
-package com.mist.commerce.domain.reservation.redis;
+package com.mist.commerce.infra.redis;
 
 public enum ClaimStatus {
     CLAIMED,

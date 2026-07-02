@@ -2,6 +2,7 @@ package com.mist.commerce.domain.reservation.redis;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.mist.commerce.domain.reservation.infra.ReservationExpiryRedisRepository;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterEach;

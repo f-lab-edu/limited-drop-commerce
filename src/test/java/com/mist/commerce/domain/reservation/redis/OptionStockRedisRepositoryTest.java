@@ -2,6 +2,7 @@ package com.mist.commerce.domain.reservation.redis;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.mist.commerce.domain.reservation.infra.OptionStockRedisRepository;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;

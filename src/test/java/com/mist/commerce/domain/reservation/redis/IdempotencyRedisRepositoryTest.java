@@ -2,6 +2,9 @@ package com.mist.commerce.domain.reservation.redis;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.mist.commerce.infra.redis.ClaimResult;
+import com.mist.commerce.infra.redis.ClaimStatus;
+import com.mist.commerce.infra.redis.IdempotencyRedisRepository;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;

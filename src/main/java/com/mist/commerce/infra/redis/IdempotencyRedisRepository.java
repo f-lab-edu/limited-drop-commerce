@@ -1,4 +1,4 @@
-package com.mist.commerce.domain.reservation.redis;
+package com.mist.commerce.infra.redis;
 
 import java.time.Duration;
 import java.util.List;
