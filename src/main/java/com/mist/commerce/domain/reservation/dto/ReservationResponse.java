@@ -1,6 +1,5 @@
 package com.mist.commerce.domain.reservation.dto;
 
-import com.mist.commerce.domain.reservation.service.ReserveResult;
 import java.time.LocalDateTime;
 
 public record ReservationResponse(Long orderId, LocalDateTime expiresAt, String status) {

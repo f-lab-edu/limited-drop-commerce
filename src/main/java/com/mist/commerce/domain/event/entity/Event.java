@@ -2,6 +2,7 @@ package com.mist.commerce.domain.event.entity;
 
 import com.mist.commerce.domain.event.exception.DropEventClosedException;
 import com.mist.commerce.domain.event.exception.DropEventNotOpenException;
+import com.mist.commerce.domain.event.exception.EventItemOptionNotFoundException;
 import com.mist.commerce.global.entity.BaseTimeEntity;
 import io.jsonwebtoken.lang.Assert;
 import jakarta.persistence.CascadeType;
@@ -96,4 +97,10 @@ public class Event extends BaseTimeEntity {
         return status.name();
     }
 
+    public EventItem getEventItem(Long eventItemId) {
+        return items.stream()
+                .filter(item -> item.getId().equals(eventItemId))
+                .findFirst()
+                .orElseThrow(EventItemOptionNotFoundException::new);
+    }
 }

@@ -24,6 +24,8 @@ import com.mist.commerce.domain.product.entity.ProductOptionGroup;
 import com.mist.commerce.domain.product.entity.ProductOptionValue;
 import com.mist.commerce.domain.product.repository.ProductOptionGroupRepository;
 import com.mist.commerce.domain.product.repository.ProductOptionValueRepository;
+import com.mist.commerce.domain.reservation.dto.ReserveCommand;
+import com.mist.commerce.domain.reservation.dto.ReserveResult;
 import com.mist.commerce.domain.reservation.entity.InventoryReservation;
 import com.mist.commerce.common.idempotency.exception.IdempotencyKeyReusedException;
 import com.mist.commerce.common.idempotency.exception.InProgressException;

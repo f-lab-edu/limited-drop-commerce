@@ -224,25 +224,4 @@ public class PaymentService {
                 + "\",\"paymentStatus\":\"" + result.paymentStatus()
                 + "\"}";
     }
-
-    private PaymentResult deserializeResult(String payload) {
-        Long paymentId = Long.valueOf(extractJsonValue(payload, "\"paymentId\":", ",\"paymentNo\""));
-        String paymentNo = extractJsonValue(payload, "\"paymentNo\":\"", "\",\"orderStatus\"");
-        String orderStatus = extractJsonValue(payload, "\"orderStatus\":\"", "\",\"paymentStatus\"");
-        String paymentStatus = extractJsonValue(payload, "\"paymentStatus\":\"", "\"}");
-        return new PaymentResult(paymentId, paymentNo, orderStatus, paymentStatus);
-    }
-
-    private String extractJsonValue(String payload, String prefix, String suffix) {
-        int start = payload.indexOf(prefix);
-        if (start < 0) {
-            throw new IllegalArgumentException("Invalid payment result payload.");
-        }
-        start += prefix.length();
-        int end = payload.indexOf(suffix, start);
-        if (end < 0) {
-            throw new IllegalArgumentException("Invalid payment result payload.");
-        }
-        return payload.substring(start, end);
-    }
 }

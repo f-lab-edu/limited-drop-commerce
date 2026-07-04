@@ -1,4 +1,4 @@
-package com.mist.commerce.domain.reservation.service;
+package com.mist.commerce.domain.reservation.dto;
 
 public record ReserveCommand(
         Long userId,
