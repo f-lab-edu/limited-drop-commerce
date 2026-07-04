@@ -1,6 +1,6 @@
 package com.mist.commerce.infra.redis;
 
-import com.mist.commerce.domain.reservation.infra.RedisReservationExpiryRepository;
+import com.mist.commerce.domain.reservation.infra.ReservationExpiryKey;
 import com.mist.commerce.domain.reservation.service.ExpiryRecoveryService;
 import java.nio.charset.StandardCharsets;
 import lombok.RequiredArgsConstructor;
@@ -19,13 +19,13 @@ public class ReservationExpiryEventListener implements MessageListener {
     @Override
     public void onMessage(Message message, byte[] pattern) {
         String expiredKey = new String(message.getBody(), StandardCharsets.UTF_8);
-        String orderId = RedisReservationExpiryRepository.orderIdFromKey(expiredKey);
-        if (orderId == null) {
+        ReservationExpiryKey key = ReservationExpiryKey.from(expiredKey);
+        if (key == null || key.orderId() == null) {
             return;
         }
 
         try {
-            expiryRecoveryService.recover(Long.parseLong(orderId));
+            expiryRecoveryService.recover(key.orderId());
         } catch (Exception e) {
             log.warn("Failed to recover order on expiry event. key={}", expiredKey, e);
         }

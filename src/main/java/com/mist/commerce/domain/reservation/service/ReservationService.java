@@ -21,9 +21,9 @@ import com.mist.commerce.domain.reservation.entity.InventoryReservation;
 import com.mist.commerce.domain.reservation.exception.ActiveReservationAlreadyExistsException;
 import com.mist.commerce.domain.reservation.exception.IdempotencyKeyReusedException;
 import com.mist.commerce.domain.reservation.exception.ReservationInProgressException;
-import com.mist.commerce.domain.reservation.infra.RedisReservationExpiryRepository;
 import com.mist.commerce.domain.reservation.repository.InventoryReservationRepository;
 import com.mist.commerce.domain.reservation.repository.OptionStockStore;
+import com.mist.commerce.domain.reservation.repository.ReservationExpiryStore;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -51,7 +51,7 @@ public class ReservationService {
     private final ProductOptionValueRepository productOptionValueRepository;
     private final OptionStockStore optionStockRedisRepository;
     private final IdempotencyStore idempotencyStore;
-    private final RedisReservationExpiryRepository reservationExpiryRedisRepository;
+    private final ReservationExpiryStore reservationExpiryStore;
     private final Clock clock;
 
     @Transactional
@@ -163,7 +163,7 @@ public class ReservationService {
                 ReserveResult result = resultHolder[0];
                 if (result != null) {
                     idempotencyStore.complete(userId, idempotencyKey, fingerprint, serializeResult(result));
-                    reservationExpiryRedisRepository.markExpiry(result.orderId(), PAYMENT_TTL);
+                    reservationExpiryStore.markExpiry(result.orderId(), PAYMENT_TTL);
                 }
             }
 

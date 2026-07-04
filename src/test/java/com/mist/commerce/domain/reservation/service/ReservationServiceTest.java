@@ -30,7 +30,7 @@ import com.mist.commerce.common.idempotency.ClaimResult;
 import com.mist.commerce.common.idempotency.ClaimStatus;
 import com.mist.commerce.infra.redis.idempotency.IdempotencyRedisRepository;
 import com.mist.commerce.domain.reservation.infra.RedisOptionStockRepository;
-import com.mist.commerce.domain.reservation.infra.RedisReservationExpiryRepository;
+import com.mist.commerce.domain.reservation.infra.RedisReservationExpiryStore;
 import com.mist.commerce.domain.reservation.repository.InventoryReservationRepository;
 import com.mist.commerce.global.exception.BusinessException;
 import java.math.BigDecimal;
@@ -91,7 +91,7 @@ class ReservationServiceTest {
     private IdempotencyRedisRepository idempotencyRedisRepository;
 
     @Mock
-    private RedisReservationExpiryRepository reservationExpiryRedisRepository;
+    private RedisReservationExpiryStore reservationExpiryRedisRepository;
 
     private ReservationService reservationService;
 

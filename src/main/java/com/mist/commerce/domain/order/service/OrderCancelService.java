@@ -17,9 +17,9 @@ import com.mist.commerce.domain.reservation.entity.InventoryReservation;
 import com.mist.commerce.domain.reservation.entity.ReservationStatus;
 import com.mist.commerce.domain.reservation.exception.IdempotencyKeyReusedException;
 import com.mist.commerce.domain.reservation.exception.ReservationInProgressException;
-import com.mist.commerce.domain.reservation.infra.RedisOptionStockRepository;
-import com.mist.commerce.domain.reservation.infra.RedisReservationExpiryRepository;
 import com.mist.commerce.domain.reservation.repository.InventoryReservationRepository;
+import com.mist.commerce.domain.reservation.repository.OptionStockStore;
+import com.mist.commerce.domain.reservation.repository.ReservationExpiryStore;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -40,8 +40,8 @@ public class OrderCancelService {
     private final OrderRepository orderRepository;
     private final InventoryReservationRepository inventoryReservationRepository;
     private final EventItemOptionStockRepository eventItemOptionStockRepository;
-    private final RedisOptionStockRepository optionStockRedisRepository;
-    private final RedisReservationExpiryRepository reservationExpiryRedisRepository;
+    private final OptionStockStore optionStockStore;
+    private final ReservationExpiryStore reservationExpiryStore;
     private final IdempotencyStore idempotencyStore;
     private final Clock clock;
 
@@ -196,9 +196,9 @@ public class OrderCancelService {
 
     private void applyRedisRestore(Long orderId, List<StockRestore> restores) {
         for (StockRestore restore : restores) {
-            optionStockRedisRepository.increase(restore.optionStockId(), restore.quantity());
+            optionStockStore.increase(restore.optionStockId(), restore.quantity());
         }
-        reservationExpiryRedisRepository.clearExpiry(orderId);
+        reservationExpiryStore.clearExpiry(orderId);
     }
 
     private String fingerprint(CancelCommand command) {
