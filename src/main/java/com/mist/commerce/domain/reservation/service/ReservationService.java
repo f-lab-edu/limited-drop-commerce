@@ -1,7 +1,7 @@
 package com.mist.commerce.domain.reservation.service;
 
 import com.mist.commerce.common.idempotency.ClaimResult;
-import com.mist.commerce.common.idempotency.ClaimStatus;
+import com.mist.commerce.common.idempotency.IdempotencyClaimResolver;
 import com.mist.commerce.common.idempotency.IdempotencyStore;
 import com.mist.commerce.domain.event.entity.Event;
 import com.mist.commerce.domain.event.entity.EventItem;
@@ -19,8 +19,6 @@ import com.mist.commerce.domain.product.repository.ProductOptionGroupRepository;
 import com.mist.commerce.domain.product.repository.ProductOptionValueRepository;
 import com.mist.commerce.domain.reservation.entity.InventoryReservation;
 import com.mist.commerce.domain.reservation.exception.ActiveReservationAlreadyExistsException;
-import com.mist.commerce.domain.reservation.exception.IdempotencyKeyReusedException;
-import com.mist.commerce.domain.reservation.exception.ReservationInProgressException;
 import com.mist.commerce.domain.reservation.repository.InventoryReservationRepository;
 import com.mist.commerce.domain.reservation.repository.OptionStockStore;
 import com.mist.commerce.domain.reservation.repository.ReservationExpiryStore;
@@ -32,6 +30,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -52,6 +51,8 @@ public class ReservationService {
     private final OptionStockStore optionStockRedisRepository;
     private final IdempotencyStore idempotencyStore;
     private final ReservationExpiryStore reservationExpiryStore;
+
+    private final IdempotencyClaimResolver idempotencyClaimResolver;
     private final Clock clock;
 
     @Transactional
@@ -62,14 +63,10 @@ public class ReservationService {
                 command.idempotencyKey(),
                 fingerprint,
                 PAYMENT_TTL);
-        if (claimResult.status() == ClaimStatus.COMPLETED) {
-            return deserializeResult(claimResult.resultPayload());
-        }
-        if (claimResult.status() == ClaimStatus.MISMATCH) {
-            throw new IdempotencyKeyReusedException();
-        }
-        if (claimResult.status() == ClaimStatus.IN_PROGRESS) {
-            throw new ReservationInProgressException();
+
+        Optional<ReserveResult> resolved = idempotencyClaimResolver.resolve(claimResult, ReserveResult.class);
+        if (resolved.isPresent()) {
+            return  resolved.get();
         }
 
         ReserveResult[] resultHolder = new ReserveResult[1];

@@ -2,6 +2,8 @@ package com.mist.commerce.domain.reservation.exception;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.mist.commerce.common.idempotency.exception.IdempotencyKeyReusedException;
+import com.mist.commerce.common.idempotency.exception.InProgressException;
 import com.mist.commerce.global.exception.BusinessException;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.DisplayName;
@@ -57,7 +59,7 @@ class ReservationErrorCodeTest {
     @Test
     @DisplayName("RESERVATION_IN_PROGRESS는 409 CONFLICT를 노출한다")
     void reservationInProgress_exposesCodeAndHttpStatus() {
-        assertErrorCode(new ReservationInProgressException(), "RESERVATION_IN_PROGRESS", HttpStatus.CONFLICT);
+        assertErrorCode(new InProgressException(), "RESERVATION_IN_PROGRESS", HttpStatus.CONFLICT);
     }
 
     @Test

@@ -1,4 +1,4 @@
-package com.mist.commerce.infra.payment;
+package com.mist.commerce.infra.payment.toss;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;

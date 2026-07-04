@@ -1,4 +1,4 @@
-package com.mist.commerce.domain.reservation.exception;
+package com.mist.commerce.common.idempotency.exception;
 
 import static com.mist.commerce.domain.reservation.exception.ReservationExceptionMessage.IDEMPOTENCY_KEY_REUSED;
 

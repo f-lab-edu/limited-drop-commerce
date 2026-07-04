@@ -1,6 +1,5 @@
-package com.mist.commerce.infra.redis;
+package com.mist.commerce.domain.reservation.infra;
 
-import com.mist.commerce.domain.reservation.infra.ReservationExpiryKey;
 import com.mist.commerce.domain.reservation.service.ExpiryRecoveryService;
 import java.nio.charset.StandardCharsets;
 import lombok.RequiredArgsConstructor;

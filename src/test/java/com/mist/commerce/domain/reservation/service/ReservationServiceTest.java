@@ -24,8 +24,8 @@ import com.mist.commerce.domain.product.entity.ProductOptionValue;
 import com.mist.commerce.domain.product.repository.ProductOptionGroupRepository;
 import com.mist.commerce.domain.product.repository.ProductOptionValueRepository;
 import com.mist.commerce.domain.reservation.entity.InventoryReservation;
-import com.mist.commerce.domain.reservation.exception.IdempotencyKeyReusedException;
-import com.mist.commerce.domain.reservation.exception.ReservationInProgressException;
+import com.mist.commerce.common.idempotency.exception.IdempotencyKeyReusedException;
+import com.mist.commerce.common.idempotency.exception.InProgressException;
 import com.mist.commerce.common.idempotency.ClaimResult;
 import com.mist.commerce.common.idempotency.ClaimStatus;
 import com.mist.commerce.infra.redis.idempotency.IdempotencyRedisRepository;
@@ -158,7 +158,7 @@ class ReservationServiceTest {
                 .thenReturn(new ClaimResult(ClaimStatus.IN_PROGRESS, null));
 
         assertThatThrownBy(() -> reservationService.reserve(command(2)))
-                .isInstanceOf(ReservationInProgressException.class)
+                .isInstanceOf(InProgressException.class)
                 .extracting("code")
                 .isEqualTo("RESERVATION_IN_PROGRESS");
 

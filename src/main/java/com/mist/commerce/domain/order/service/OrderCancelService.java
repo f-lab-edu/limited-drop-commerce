@@ -1,7 +1,7 @@
 package com.mist.commerce.domain.order.service;
 
 import com.mist.commerce.common.idempotency.ClaimResult;
-import com.mist.commerce.common.idempotency.ClaimStatus;
+import com.mist.commerce.common.idempotency.IdempotencyClaimResolver;
 import com.mist.commerce.common.idempotency.IdempotencyStore;
 import com.mist.commerce.domain.event.exception.EventItemOptionNotFoundException;
 import com.mist.commerce.domain.event.repository.EventItemOptionStockRepository;
@@ -15,8 +15,6 @@ import com.mist.commerce.domain.order.exception.OrderNotFoundException;
 import com.mist.commerce.domain.order.repository.OrderRepository;
 import com.mist.commerce.domain.reservation.entity.InventoryReservation;
 import com.mist.commerce.domain.reservation.entity.ReservationStatus;
-import com.mist.commerce.domain.reservation.exception.IdempotencyKeyReusedException;
-import com.mist.commerce.domain.reservation.exception.ReservationInProgressException;
 import com.mist.commerce.domain.reservation.repository.InventoryReservationRepository;
 import com.mist.commerce.domain.reservation.repository.OptionStockStore;
 import com.mist.commerce.domain.reservation.repository.ReservationExpiryStore;
@@ -25,6 +23,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,12 +42,15 @@ public class OrderCancelService {
     private final OptionStockStore optionStockStore;
     private final ReservationExpiryStore reservationExpiryStore;
     private final IdempotencyStore idempotencyStore;
+
+    private final IdempotencyClaimResolver idempotencyClaimResolver;
     private final Clock clock;
 
     @Transactional
     public CancelResult cancel(CancelCommand command) {
         Order order = orderRepository.findById(command.orderId())
                 .orElseThrow(OrderNotFoundException::new);
+
         validateOwner(order, command.userId());
         validateCancellable(order.getStatus());
 
@@ -58,14 +60,10 @@ public class OrderCancelService {
                 command.idempotencyKey(),
                 fingerprint,
                 IDEMPOTENCY_TTL);
-        if (claimResult.status() == ClaimStatus.COMPLETED) {
-            return deserializeResult(claimResult.resultPayload());
-        }
-        if (claimResult.status() == ClaimStatus.MISMATCH) {
-            throw new IdempotencyKeyReusedException();
-        }
-        if (claimResult.status() == ClaimStatus.IN_PROGRESS) {
-            throw new ReservationInProgressException();
+
+        Optional<CancelResult> resolved = idempotencyClaimResolver.resolve(claimResult, CancelResult.class);
+        if (resolved.isPresent()) {
+            return  resolved.get();
         }
 
         CancelResult[] resultHolder = new CancelResult[1];

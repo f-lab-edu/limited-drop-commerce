@@ -1,7 +1,7 @@
 package com.mist.commerce.domain.payment.service;
 
 import com.mist.commerce.common.idempotency.ClaimResult;
-import com.mist.commerce.common.idempotency.ClaimStatus;
+import com.mist.commerce.common.idempotency.IdempotencyClaimResolver;
 import com.mist.commerce.common.idempotency.IdempotencyStore;
 import com.mist.commerce.domain.order.entity.Order;
 import com.mist.commerce.domain.order.entity.OrderStatus;
@@ -23,13 +23,12 @@ import com.mist.commerce.domain.payment.gateway.PaymentApprovalCommand;
 import com.mist.commerce.domain.payment.gateway.PaymentGateway;
 import com.mist.commerce.domain.payment.repository.PaymentRepository;
 import com.mist.commerce.domain.payment.repository.PaymentTransactionRepository;
-import com.mist.commerce.domain.reservation.exception.IdempotencyKeyReusedException;
-import com.mist.commerce.domain.reservation.exception.ReservationInProgressException;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -50,12 +49,15 @@ public class PaymentService {
     private final PaymentGateway paymentGateway;
     private final PaymentEventPublisher eventPublisher;
     private final IdempotencyStore idempotencyStore;
+
+    private final IdempotencyClaimResolver idempotencyClaimResolver;
     private final Clock clock;
 
     @Transactional(noRollbackFor = PaymentFailedException.class)
     public PaymentResult pay(PaymentCommand command) {
         Order order = orderRepository.findById(command.orderId())
                 .orElseThrow(OrderNotFoundException::new);
+
         validateOwner(order, command.userId());
         validatePayable(order.getStatus());
         validateAmount(order.getTotalAmount(), command.amount());
@@ -66,14 +68,10 @@ public class PaymentService {
                 command.idempotencyKey(),
                 fingerprint,
                 IDEMPOTENCY_TTL);
-        if (claimResult.status() == ClaimStatus.COMPLETED) {
-            return deserializeResult(claimResult.resultPayload());
-        }
-        if (claimResult.status() == ClaimStatus.MISMATCH) {
-            throw new IdempotencyKeyReusedException();
-        }
-        if (claimResult.status() == ClaimStatus.IN_PROGRESS) {
-            throw new ReservationInProgressException();
+
+        Optional<PaymentResult> resolved = idempotencyClaimResolver.resolve(claimResult, PaymentResult.class);
+        if (resolved.isPresent()) {
+            return resolved.get();
         }
 
         boolean idempotencySynchronizationRegistered = false;

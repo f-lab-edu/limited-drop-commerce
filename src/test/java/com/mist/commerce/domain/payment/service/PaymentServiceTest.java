@@ -33,8 +33,8 @@ import com.mist.commerce.domain.payment.gateway.PaymentApprovalCommand;
 import com.mist.commerce.domain.payment.gateway.PaymentGateway;
 import com.mist.commerce.domain.payment.repository.PaymentRepository;
 import com.mist.commerce.domain.payment.repository.PaymentTransactionRepository;
-import com.mist.commerce.domain.reservation.exception.IdempotencyKeyReusedException;
-import com.mist.commerce.domain.reservation.exception.ReservationInProgressException;
+import com.mist.commerce.common.idempotency.exception.IdempotencyKeyReusedException;
+import com.mist.commerce.common.idempotency.exception.InProgressException;
 import com.mist.commerce.common.idempotency.ClaimResult;
 import com.mist.commerce.common.idempotency.ClaimStatus;
 import com.mist.commerce.infra.redis.idempotency.IdempotencyRedisRepository;
@@ -376,7 +376,7 @@ class PaymentServiceTest {
                 .thenReturn(new ClaimResult(ClaimStatus.IN_PROGRESS, null));
 
         assertBusinessException(
-                ReservationInProgressException.class,
+                InProgressException.class,
                 "RESERVATION_IN_PROGRESS",
                 () -> paymentService.pay(command("idem-pay-in-progress")));
 

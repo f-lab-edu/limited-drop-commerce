@@ -18,6 +18,8 @@ import com.mist.commerce.domain.payment.exception.PaymentExceptionMessage;
 import com.mist.commerce.domain.payment.exception.PaymentFailedException;
 import com.mist.commerce.domain.payment.gateway.PaymentApproval;
 import com.mist.commerce.domain.payment.gateway.PaymentApprovalCommand;
+import com.mist.commerce.infra.payment.toss.TossPaymentClient;
+import com.mist.commerce.infra.payment.toss.TossPaymentProperties;
 import jakarta.persistence.EntityManager;
 import java.io.IOException;
 import java.lang.reflect.Field;
