@@ -1,4 +1,4 @@
-package com.mist.commerce.common.redis;
+package com.mist.commerce.infra.redis;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;

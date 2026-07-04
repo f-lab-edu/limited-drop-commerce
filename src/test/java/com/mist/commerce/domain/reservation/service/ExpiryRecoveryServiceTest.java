@@ -11,8 +11,8 @@ import com.mist.commerce.domain.order.entity.OrderStatus;
 import com.mist.commerce.domain.order.repository.OrderRepository;
 import com.mist.commerce.domain.reservation.entity.InventoryReservation;
 import com.mist.commerce.domain.reservation.entity.ReservationStatus;
-import com.mist.commerce.domain.reservation.infra.OptionStockRedisRepository;
-import com.mist.commerce.domain.reservation.infra.ReservationExpiryRedisRepository;
+import com.mist.commerce.domain.reservation.infra.RedisOptionStockRepository;
+import com.mist.commerce.domain.reservation.infra.RedisReservationExpiryRepository;
 import com.mist.commerce.domain.reservation.repository.InventoryReservationRepository;
 import com.mist.commerce.support.MySqlContainerTestSupport;
 import java.math.BigDecimal;
@@ -66,10 +66,10 @@ class ExpiryRecoveryServiceTest extends MySqlContainerTestSupport {
     private EventItemOptionStockRepository eventItemOptionStockRepository;
 
     @Autowired
-    private OptionStockRedisRepository optionStockRedisRepository;
+    private RedisOptionStockRepository optionStockRedisRepository;
 
     @Autowired
-    private ReservationExpiryRedisRepository reservationExpiryRedisRepository;
+    private RedisReservationExpiryRepository reservationExpiryRedisRepository;
 
     @Autowired
     private StringRedisTemplate redisTemplate;

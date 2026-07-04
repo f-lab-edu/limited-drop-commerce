@@ -22,7 +22,7 @@ import com.mist.commerce.domain.product.repository.ProductOptionValueRepository;
 import com.mist.commerce.domain.product.repository.ProductRepository;
 import com.mist.commerce.domain.reservation.entity.InventoryReservation;
 import com.mist.commerce.domain.reservation.entity.ReservationStatus;
-import com.mist.commerce.domain.reservation.infra.OptionStockRedisRepository;
+import com.mist.commerce.domain.reservation.infra.RedisOptionStockRepository;
 import com.mist.commerce.domain.reservation.repository.InventoryReservationRepository;
 import com.mist.commerce.global.exception.BusinessException;
 import com.mist.commerce.support.MySqlContainerTestSupport;
@@ -101,7 +101,7 @@ class ReservationServiceIntegrationTest extends MySqlContainerTestSupport {
     private ProductOptionValueRepository productOptionValueRepository;
 
     @Autowired
-    private OptionStockRedisRepository optionStockRedisRepository;
+    private RedisOptionStockRepository optionStockRedisRepository;
 
     @Autowired
     private StringRedisTemplate redisTemplate;

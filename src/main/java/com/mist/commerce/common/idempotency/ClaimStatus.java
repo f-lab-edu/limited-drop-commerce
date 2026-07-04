@@ -1,4 +1,4 @@
-package com.mist.commerce.infra.redis;
+package com.mist.commerce.common.idempotency;
 
 public enum ClaimStatus {
     CLAIMED,

@@ -1,6 +1,5 @@
-package com.mist.commerce.global.config;
+package com.mist.commerce.infra.redis;
 
-import com.mist.commerce.infra.redis.ReservationExpiryEventListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnection;

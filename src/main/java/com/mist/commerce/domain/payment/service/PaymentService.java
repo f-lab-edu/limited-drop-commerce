@@ -1,5 +1,8 @@
 package com.mist.commerce.domain.payment.service;
 
+import com.mist.commerce.common.idempotency.ClaimResult;
+import com.mist.commerce.common.idempotency.ClaimStatus;
+import com.mist.commerce.common.idempotency.IdempotencyStore;
 import com.mist.commerce.domain.order.entity.Order;
 import com.mist.commerce.domain.order.entity.OrderStatus;
 import com.mist.commerce.domain.order.exception.OrderCannotPayException;
@@ -22,21 +25,20 @@ import com.mist.commerce.domain.payment.repository.PaymentRepository;
 import com.mist.commerce.domain.payment.repository.PaymentTransactionRepository;
 import com.mist.commerce.domain.reservation.exception.IdempotencyKeyReusedException;
 import com.mist.commerce.domain.reservation.exception.ReservationInProgressException;
-import com.mist.commerce.infra.redis.ClaimResult;
-import com.mist.commerce.infra.redis.ClaimStatus;
-import com.mist.commerce.infra.redis.IdempotencyRedisRepository;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Service
+@RequiredArgsConstructor
 public class PaymentService {
 
     private static final Duration IDEMPOTENCY_TTL = Duration.ofMinutes(30);
@@ -47,26 +49,8 @@ public class PaymentService {
     private final PaymentTransactionRepository paymentTransactionRepository;
     private final PaymentGateway paymentGateway;
     private final PaymentEventPublisher eventPublisher;
-    private final IdempotencyRedisRepository idempotencyRedisRepository;
+    private final IdempotencyStore idempotencyStore;
     private final Clock clock;
-
-    public PaymentService(
-            OrderRepository orderRepository,
-            PaymentRepository paymentRepository,
-            PaymentTransactionRepository paymentTransactionRepository,
-            PaymentGateway paymentGateway,
-            PaymentEventPublisher eventPublisher,
-            IdempotencyRedisRepository idempotencyRedisRepository,
-            Clock clock
-    ) {
-        this.orderRepository = orderRepository;
-        this.paymentRepository = paymentRepository;
-        this.paymentTransactionRepository = paymentTransactionRepository;
-        this.paymentGateway = paymentGateway;
-        this.eventPublisher = eventPublisher;
-        this.idempotencyRedisRepository = idempotencyRedisRepository;
-        this.clock = clock;
-    }
 
     @Transactional(noRollbackFor = PaymentFailedException.class)
     public PaymentResult pay(PaymentCommand command) {
@@ -77,7 +61,7 @@ public class PaymentService {
         validateAmount(order.getTotalAmount(), command.amount());
 
         String fingerprint = fingerprint(command);
-        ClaimResult claimResult = idempotencyRedisRepository.claim(
+        ClaimResult claimResult = idempotencyStore.claim(
                 command.userId(),
                 command.idempotencyKey(),
                 fingerprint,
@@ -117,7 +101,7 @@ public class PaymentService {
             } catch (PaymentFailedException ex) {
                 payment.fail(now);
                 paymentRepository.save(payment);
-                idempotencyRedisRepository.release(command.userId(), command.idempotencyKey());
+                idempotencyStore.release(command.userId(), command.idempotencyKey());
                 throw ex;
             }
 
@@ -146,7 +130,7 @@ public class PaymentService {
             return result;
         } catch (RuntimeException ex) {
             if (!idempotencySynchronizationRegistered && !(ex instanceof PaymentFailedException)) {
-                idempotencyRedisRepository.release(command.userId(), command.idempotencyKey());
+                idempotencyStore.release(command.userId(), command.idempotencyKey());
             }
             throw ex;
         }
@@ -206,7 +190,7 @@ public class PaymentService {
             @Override
             public void afterCompletion(int status) {
                 if (status == STATUS_ROLLED_BACK) {
-                    idempotencyRedisRepository.release(command.userId(), command.idempotencyKey());
+                    idempotencyStore.release(command.userId(), command.idempotencyKey());
                 }
             }
         });
@@ -220,7 +204,7 @@ public class PaymentService {
             PaymentCompletedEvent event
     ) {
         eventPublisher.publishPaymentCompleted(event);
-        idempotencyRedisRepository.complete(
+        idempotencyStore.complete(
                 command.userId(),
                 command.idempotencyKey(),
                 fingerprint,

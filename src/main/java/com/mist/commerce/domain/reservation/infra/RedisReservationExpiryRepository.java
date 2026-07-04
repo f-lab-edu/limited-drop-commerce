@@ -1,13 +1,14 @@
 package com.mist.commerce.domain.reservation.infra;
 
 import java.time.Duration;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class ReservationExpiryRedisRepository {
+public class RedisReservationExpiryRepository {
 
     private static final String KEY_PREFIX = "reservation:expiry:";
 
@@ -22,7 +23,7 @@ public class ReservationExpiryRedisRepository {
     }
 
     public static String orderIdFromKey(String key) {
-        if (key == null || !key.startsWith(KEY_PREFIX)) {
+        if (Objects.nonNull(key) || !key.startsWith(KEY_PREFIX)) {
             return null;
         }
 

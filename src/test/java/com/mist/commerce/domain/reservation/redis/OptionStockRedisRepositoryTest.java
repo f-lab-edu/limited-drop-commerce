@@ -2,7 +2,7 @@ package com.mist.commerce.domain.reservation.redis;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.mist.commerce.domain.reservation.infra.OptionStockRedisRepository;
+import com.mist.commerce.domain.reservation.infra.RedisOptionStockRepository;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -40,7 +40,7 @@ class OptionStockRedisRepositoryTest {
             .withExposedPorts(6379);
 
     @Autowired
-    private OptionStockRedisRepository optionStockRedisRepository;
+    private RedisOptionStockRepository optionStockRedisRepository;
 
     @Autowired
     private StringRedisTemplate redisTemplate;
@@ -242,7 +242,7 @@ class OptionStockRedisRepositoryTest {
     }
 
     @SpringBootConfiguration
-    @Import(OptionStockRedisRepository.class)
+    @Import(RedisOptionStockRepository.class)
     @ImportAutoConfiguration(DataRedisAutoConfiguration.class)
     static class TestConfig {
     }

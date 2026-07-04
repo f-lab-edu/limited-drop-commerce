@@ -1,29 +1,28 @@
-package com.mist.commerce.infra.redis;
+package com.mist.commerce.infra.redis.idempotency;
 
+import com.mist.commerce.common.idempotency.ClaimResult;
+import com.mist.commerce.common.idempotency.ClaimStatus;
+import com.mist.commerce.common.idempotency.IdempotencyStore;
 import java.time.Duration;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class IdempotencyRedisRepository {
+public class IdempotencyRedisRepository implements IdempotencyStore {
 
     private static final String KEY_PREFIX = "idem:";
     private static final String VALUE_SEPARATOR = "|";
-    private static final String STATUS_PENDING = "PENDING";
-    private static final String STATUS_DONE = "DONE";
-    private static final DefaultRedisScript<String> CLAIM_SCRIPT = claimScript();
-    private static final DefaultRedisScript<Long> COMPLETE_SCRIPT = completeScript();
 
+    private final IdempotencyRedisScripts redisScripts;
     private final StringRedisTemplate redisTemplate;
 
+    @Override
     public ClaimResult claim(Long userId, String key, String fingerprint, Duration ttl) {
         String result = redisTemplate.execute(
-                CLAIM_SCRIPT,
+                redisScripts.getClaimScript(),
                 List.of(key(userId, key)),
                 fingerprint,
                 String.valueOf(ttl.toMillis())
@@ -31,10 +30,12 @@ public class IdempotencyRedisRepository {
         return toClaimResult(result);
     }
 
+    @Override
     public void complete(Long userId, String key, String expectedFingerprint, String resultPayload) {
-        redisTemplate.execute(COMPLETE_SCRIPT, List.of(key(userId, key)), expectedFingerprint, resultPayload);
+        redisTemplate.execute(redisScripts.getCompleteScript(), List.of(key(userId, key)), expectedFingerprint, resultPayload);
     }
 
+    @Override
     public void release(Long userId, String key) {
         redisTemplate.delete(key(userId, key));
     }
@@ -52,19 +53,5 @@ public class IdempotencyRedisRepository {
 
     private String key(Long userId, String key) {
         return KEY_PREFIX + userId + ":" + key;
-    }
-
-    private static DefaultRedisScript<String> claimScript() {
-        DefaultRedisScript<String> script = new DefaultRedisScript<>();
-        script.setLocation(new ClassPathResource("redis/lua/idempotency-claim.lua"));
-        script.setResultType(String.class);
-        return script;
-    }
-
-    private static DefaultRedisScript<Long> completeScript() {
-        DefaultRedisScript<Long> script = new DefaultRedisScript<>();
-        script.setLocation(new ClassPathResource("redis/lua/idempotency-complete.lua"));
-        script.setResultType(Long.class);
-        return script;
     }
 }

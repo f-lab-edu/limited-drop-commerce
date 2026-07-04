@@ -1,5 +1,8 @@
 package com.mist.commerce.domain.reservation.service;
 
+import com.mist.commerce.common.idempotency.ClaimResult;
+import com.mist.commerce.common.idempotency.ClaimStatus;
+import com.mist.commerce.common.idempotency.IdempotencyStore;
 import com.mist.commerce.domain.event.entity.Event;
 import com.mist.commerce.domain.event.entity.EventItem;
 import com.mist.commerce.domain.event.entity.EventItemOptionStock;
@@ -18,12 +21,9 @@ import com.mist.commerce.domain.reservation.entity.InventoryReservation;
 import com.mist.commerce.domain.reservation.exception.ActiveReservationAlreadyExistsException;
 import com.mist.commerce.domain.reservation.exception.IdempotencyKeyReusedException;
 import com.mist.commerce.domain.reservation.exception.ReservationInProgressException;
-import com.mist.commerce.infra.redis.ClaimResult;
-import com.mist.commerce.infra.redis.ClaimStatus;
-import com.mist.commerce.infra.redis.IdempotencyRedisRepository;
-import com.mist.commerce.domain.reservation.infra.OptionStockRedisRepository;
-import com.mist.commerce.domain.reservation.infra.ReservationExpiryRedisRepository;
+import com.mist.commerce.domain.reservation.infra.RedisReservationExpiryRepository;
 import com.mist.commerce.domain.reservation.repository.InventoryReservationRepository;
+import com.mist.commerce.domain.reservation.repository.OptionStockStore;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -49,15 +49,15 @@ public class ReservationService {
     private final InventoryReservationRepository inventoryReservationRepository;
     private final ProductOptionGroupRepository productOptionGroupRepository;
     private final ProductOptionValueRepository productOptionValueRepository;
-    private final OptionStockRedisRepository optionStockRedisRepository;
-    private final IdempotencyRedisRepository idempotencyRedisRepository;
-    private final ReservationExpiryRedisRepository reservationExpiryRedisRepository;
+    private final OptionStockStore optionStockRedisRepository;
+    private final IdempotencyStore idempotencyStore;
+    private final RedisReservationExpiryRepository reservationExpiryRedisRepository;
     private final Clock clock;
 
     @Transactional
     public ReserveResult reserve(ReserveCommand command) {
         String fingerprint = fingerprint(command);
-        ClaimResult claimResult = idempotencyRedisRepository.claim(
+        ClaimResult claimResult = idempotencyStore.claim(
                 command.userId(),
                 command.idempotencyKey(),
                 fingerprint,
@@ -162,7 +162,7 @@ public class ReservationService {
             public void afterCommit() {
                 ReserveResult result = resultHolder[0];
                 if (result != null) {
-                    idempotencyRedisRepository.complete(userId, idempotencyKey, fingerprint, serializeResult(result));
+                    idempotencyStore.complete(userId, idempotencyKey, fingerprint, serializeResult(result));
                     reservationExpiryRedisRepository.markExpiry(result.orderId(), PAYMENT_TTL);
                 }
             }
@@ -170,7 +170,7 @@ public class ReservationService {
             @Override
             public void afterCompletion(int status) {
                 if (status == STATUS_ROLLED_BACK) {
-                    idempotencyRedisRepository.release(userId, idempotencyKey);
+                    idempotencyStore.release(userId, idempotencyKey);
                 }
             }
         });

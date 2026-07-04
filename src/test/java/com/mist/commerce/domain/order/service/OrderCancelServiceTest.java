@@ -25,11 +25,11 @@ import com.mist.commerce.domain.order.exception.OrderNotFoundException;
 import com.mist.commerce.domain.order.repository.OrderRepository;
 import com.mist.commerce.domain.reservation.entity.InventoryReservation;
 import com.mist.commerce.domain.reservation.entity.ReservationStatus;
-import com.mist.commerce.infra.redis.ClaimResult;
-import com.mist.commerce.infra.redis.ClaimStatus;
-import com.mist.commerce.infra.redis.IdempotencyRedisRepository;
-import com.mist.commerce.domain.reservation.infra.OptionStockRedisRepository;
-import com.mist.commerce.domain.reservation.infra.ReservationExpiryRedisRepository;
+import com.mist.commerce.common.idempotency.ClaimResult;
+import com.mist.commerce.common.idempotency.ClaimStatus;
+import com.mist.commerce.infra.redis.idempotency.IdempotencyRedisRepository;
+import com.mist.commerce.domain.reservation.infra.RedisOptionStockRepository;
+import com.mist.commerce.domain.reservation.infra.RedisReservationExpiryRepository;
 import com.mist.commerce.domain.reservation.repository.InventoryReservationRepository;
 import com.mist.commerce.global.exception.BusinessException;
 import java.math.BigDecimal;
@@ -82,10 +82,10 @@ class OrderCancelServiceTest {
     private EventItemOptionStockRepository eventItemOptionStockRepository;
 
     @Mock
-    private OptionStockRedisRepository optionStockRedisRepository;
+    private RedisOptionStockRepository optionStockRedisRepository;
 
     @Mock
-    private ReservationExpiryRedisRepository reservationExpiryRedisRepository;
+    private RedisReservationExpiryRepository reservationExpiryRedisRepository;
 
     @Mock
     private IdempotencyRedisRepository idempotencyRedisRepository;

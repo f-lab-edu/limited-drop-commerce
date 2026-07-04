@@ -1,9 +1,11 @@
 package com.mist.commerce.domain.reservation.infra;
 
-import com.mist.commerce.common.redis.RedisScriptLoader;
+import com.mist.commerce.infra.redis.RedisScriptLoader;
+import lombok.Getter;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Component;
 
+@Getter
 @Component
 public class OptionStockRedisScripts {
     private static final String TRY_DECREASE_SCRIPT_PATH = "redis/lua/option-stock-try-decrease.lua";
@@ -14,14 +16,6 @@ public class OptionStockRedisScripts {
 
     public OptionStockRedisScripts(RedisScriptLoader redisScriptLoader) {
         this.decreaseScript = redisScriptLoader.loadLongScript(TRY_DECREASE_SCRIPT_PATH);
-        this.tryDecreaseWithFallbackScript = redisScriptLoader.loadLongScript(TRY_DECREASE_WITH_FALLBACK_SCRIPT_PATH);;
-    }
-
-    public RedisScript<Long> getDecreaseScript() {
-        return decreaseScript;
-    }
-
-    public RedisScript<Long> getTryDecreaseWithFallbackScript() {
-        return tryDecreaseWithFallbackScript;
+        this.tryDecreaseWithFallbackScript = redisScriptLoader.loadLongScript(TRY_DECREASE_WITH_FALLBACK_SCRIPT_PATH);
     }
 }

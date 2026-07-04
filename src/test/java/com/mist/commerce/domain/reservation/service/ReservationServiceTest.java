@@ -26,11 +26,11 @@ import com.mist.commerce.domain.product.repository.ProductOptionValueRepository;
 import com.mist.commerce.domain.reservation.entity.InventoryReservation;
 import com.mist.commerce.domain.reservation.exception.IdempotencyKeyReusedException;
 import com.mist.commerce.domain.reservation.exception.ReservationInProgressException;
-import com.mist.commerce.infra.redis.ClaimResult;
-import com.mist.commerce.infra.redis.ClaimStatus;
-import com.mist.commerce.infra.redis.IdempotencyRedisRepository;
-import com.mist.commerce.domain.reservation.infra.OptionStockRedisRepository;
-import com.mist.commerce.domain.reservation.infra.ReservationExpiryRedisRepository;
+import com.mist.commerce.common.idempotency.ClaimResult;
+import com.mist.commerce.common.idempotency.ClaimStatus;
+import com.mist.commerce.infra.redis.idempotency.IdempotencyRedisRepository;
+import com.mist.commerce.domain.reservation.infra.RedisOptionStockRepository;
+import com.mist.commerce.domain.reservation.infra.RedisReservationExpiryRepository;
 import com.mist.commerce.domain.reservation.repository.InventoryReservationRepository;
 import com.mist.commerce.global.exception.BusinessException;
 import java.math.BigDecimal;
@@ -85,13 +85,13 @@ class ReservationServiceTest {
     private ProductOptionValueRepository productOptionValueRepository;
 
     @Mock
-    private OptionStockRedisRepository optionStockRedisRepository;
+    private RedisOptionStockRepository optionStockRedisRepository;
 
     @Mock
     private IdempotencyRedisRepository idempotencyRedisRepository;
 
     @Mock
-    private ReservationExpiryRedisRepository reservationExpiryRedisRepository;
+    private RedisReservationExpiryRepository reservationExpiryRedisRepository;
 
     private ReservationService reservationService;
 

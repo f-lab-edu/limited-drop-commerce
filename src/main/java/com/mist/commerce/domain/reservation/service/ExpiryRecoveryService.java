@@ -6,8 +6,8 @@ import com.mist.commerce.domain.order.entity.OrderStatus;
 import com.mist.commerce.domain.order.repository.OrderRepository;
 import com.mist.commerce.domain.reservation.entity.InventoryReservation;
 import com.mist.commerce.domain.reservation.entity.ReservationStatus;
-import com.mist.commerce.domain.reservation.infra.OptionStockRedisRepository;
-import com.mist.commerce.domain.reservation.infra.ReservationExpiryRedisRepository;
+import com.mist.commerce.domain.reservation.infra.RedisOptionStockRepository;
+import com.mist.commerce.domain.reservation.infra.RedisReservationExpiryRepository;
 import com.mist.commerce.domain.reservation.repository.InventoryReservationRepository;
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -26,8 +26,8 @@ public class ExpiryRecoveryService {
     private final OrderRepository orderRepository;
     private final InventoryReservationRepository inventoryReservationRepository;
     private final EventItemOptionStockRepository eventItemOptionStockRepository;
-    private final OptionStockRedisRepository optionStockRedisRepository;
-    private final ReservationExpiryRedisRepository reservationExpiryRedisRepository;
+    private final RedisOptionStockRepository optionStockRedisRepository;
+    private final RedisReservationExpiryRepository reservationExpiryRedisRepository;
     private final Clock clock;
 
     @Transactional

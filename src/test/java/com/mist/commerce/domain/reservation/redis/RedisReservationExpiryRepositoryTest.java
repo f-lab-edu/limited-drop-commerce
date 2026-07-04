@@ -2,7 +2,7 @@ package com.mist.commerce.domain.reservation.redis;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.mist.commerce.domain.reservation.infra.ReservationExpiryRedisRepository;
+import com.mist.commerce.domain.reservation.infra.RedisReservationExpiryRepository;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterEach;
@@ -24,7 +24,7 @@ import org.testcontainers.utility.DockerImageName;
 
 @SpringBootTest
 @Testcontainers
-class ReservationExpiryRedisRepositoryTest {
+class RedisReservationExpiryRepositoryTest {
 
     private static final Long ORDER_ID = 42L;
     private static final Duration TTL = Duration.ofMinutes(30);
@@ -35,7 +35,7 @@ class ReservationExpiryRedisRepositoryTest {
             .withExposedPorts(6379);
 
     @Autowired
-    private ReservationExpiryRedisRepository reservationExpiryRedisRepository;
+    private RedisReservationExpiryRepository reservationExpiryRedisRepository;
 
     @Autowired
     private StringRedisTemplate redisTemplate;
@@ -82,7 +82,7 @@ class ReservationExpiryRedisRepositoryTest {
     @Test
     @DisplayName("TC-EXPIRY-MARKER-003: orderIdFromKey는 만료 마커 키에서 orderId 문자열을 파싱한다")
     void orderIdFromKey_whenExpiryMarkerKey_returnsOrderId() {
-        String orderId = ReservationExpiryRedisRepository.orderIdFromKey("reservation:expiry:42");
+        String orderId = RedisReservationExpiryRepository.orderIdFromKey("reservation:expiry:42");
 
         assertThat(orderId).isEqualTo("42");
     }
@@ -90,8 +90,8 @@ class ReservationExpiryRedisRepositoryTest {
     @Test
     @DisplayName("TC-EXPIRY-MARKER-004: orderIdFromKey는 비대상 키이면 null을 반환한다")
     void orderIdFromKey_whenNotExpiryMarkerKey_returnsNull() {
-        assertThat(ReservationExpiryRedisRepository.orderIdFromKey("stock:option:42")).isNull();
-        assertThat(ReservationExpiryRedisRepository.orderIdFromKey("reservation:expiry:")).isNull();
+        assertThat(RedisReservationExpiryRepository.orderIdFromKey("stock:option:42")).isNull();
+        assertThat(RedisReservationExpiryRepository.orderIdFromKey("reservation:expiry:")).isNull();
     }
 
     private String expiryKey(Long orderId) {
@@ -99,7 +99,7 @@ class ReservationExpiryRedisRepositoryTest {
     }
 
     @SpringBootConfiguration
-    @Import(ReservationExpiryRedisRepository.class)
+    @Import(RedisReservationExpiryRepository.class)
     @ImportAutoConfiguration(DataRedisAutoConfiguration.class)
     static class TestConfig {
     }

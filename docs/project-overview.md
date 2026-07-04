@@ -45,3 +45,73 @@
 
 이 문서는 프로젝트의 빠른 이해를 위한 입문 문서다.
 도메인 흐름, 상태 전이, API 세부 계약, 테이블 구조 같은 상세 내용은 각 전용 문서에서 관리한다.
+
+
+## 패키지
+```aiignore
+com.mist.commerce
+├── CommerceApplication.java
+│
+├── global/
+│   ├── config/
+│   ├── exception/
+│   ├── response/
+│   ├── entity/
+│   ├── filter/
+│   ├── interceptor/
+│   └── util/
+│
+├── common/
+│   
+│   
+│   
+│   
+│
+└── domain/
+    ├── user/
+    │   ├── controller/
+    │   ├── service/
+    │   ├── repository/
+    │   ├── entity/
+    │   ├── dto/
+    │   └── exception/
+    │
+    ├── reservation/
+    │   ├── controller/
+    │   ├── service/
+    │   ├── repository/
+    │   │   └── StockReservationStore.java
+    │   ├── entity/
+    │   ├── dto/
+    │   ├── exception/
+    │   └── infra/
+    │       └── redis/
+    │           ├── RedisStockReservationStore.java
+    │           └── StockReservationLuaScript.java
+    │
+    ├── order/
+    │   ├── controller/
+    │   ├── service/
+    │   ├── repository/
+    │   │   └── OrderIdempotencyStore.java
+    │   ├── entity/
+    │   ├── dto/
+    │   ├── exception/
+    │   └── infra/
+    │       └── redis/
+    │           └── RedisOrderIdempotencyStore.java
+    │
+    └── payment/
+        ├── controller/
+        ├── service/
+        ├── repository/
+        │   └── PaymentIdempotencyStore.java
+        ├── entity/
+        ├── dto/
+        ├── exception/
+        └── infra/
+            ├── redis/
+            │   └── RedisPaymentIdempotencyStore.java
+            └── external/
+                └── PaymentGatewayClient.java
+```
