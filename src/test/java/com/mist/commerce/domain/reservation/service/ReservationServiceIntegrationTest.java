@@ -20,6 +20,7 @@ import com.mist.commerce.domain.product.entity.ProductStatus;
 import com.mist.commerce.domain.product.repository.ProductOptionGroupRepository;
 import com.mist.commerce.domain.product.repository.ProductOptionValueRepository;
 import com.mist.commerce.domain.product.repository.ProductRepository;
+import com.mist.commerce.domain.reservation.application.service.ReservationService;
 import com.mist.commerce.domain.reservation.dto.ReserveCommand;
 import com.mist.commerce.domain.reservation.dto.ReserveResult;
 import com.mist.commerce.domain.reservation.entity.InventoryReservation;

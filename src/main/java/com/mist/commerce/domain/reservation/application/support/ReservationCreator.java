@@ -1,4 +1,4 @@
-package com.mist.commerce.domain.reservation.service;
+package com.mist.commerce.domain.reservation.application.support;
 
 import com.mist.commerce.domain.order.entity.Order;
 import com.mist.commerce.domain.order.entity.OrderItem;

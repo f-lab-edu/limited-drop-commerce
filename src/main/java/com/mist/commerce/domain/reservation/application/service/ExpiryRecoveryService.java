@@ -1,4 +1,4 @@
-package com.mist.commerce.domain.reservation.service;
+package com.mist.commerce.domain.reservation.application.service;
 
 import com.mist.commerce.domain.event.exception.EventItemOptionNotFoundException;
 import com.mist.commerce.domain.event.repository.EventItemOptionStockRepository;

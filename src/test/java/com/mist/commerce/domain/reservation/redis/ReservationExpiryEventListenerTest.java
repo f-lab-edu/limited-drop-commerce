@@ -6,7 +6,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.mist.commerce.CommerceApplication;
-import com.mist.commerce.domain.reservation.service.ExpiryRecoveryService;
+import com.mist.commerce.domain.reservation.application.service.ExpiryRecoveryService;
 import com.mist.commerce.support.MySqlContainerTestSupport;
 import java.time.Duration;
 import org.junit.jupiter.api.BeforeEach;

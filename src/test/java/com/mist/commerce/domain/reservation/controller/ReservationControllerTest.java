@@ -13,7 +13,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.mist.commerce.domain.event.exception.StockExhaustedException;
 import com.mist.commerce.domain.reservation.dto.ReservationRequest;
-import com.mist.commerce.domain.reservation.service.ReservationService;
+import com.mist.commerce.domain.reservation.presentation.ReservationController;
+import com.mist.commerce.domain.reservation.application.service.ReservationService;
 import com.mist.commerce.domain.reservation.dto.ReserveCommand;
 import com.mist.commerce.domain.reservation.dto.ReserveResult;
 import com.mist.commerce.domain.user.service.CustomOAuth2UserService;

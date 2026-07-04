@@ -17,7 +17,7 @@ import com.mist.commerce.domain.reservation.entity.ReservationStatus;
 import com.mist.commerce.domain.reservation.infra.RedisOptionStockRepository;
 import com.mist.commerce.domain.reservation.infra.RedisReservationExpiryStore;
 import com.mist.commerce.domain.reservation.repository.InventoryReservationRepository;
-import com.mist.commerce.domain.reservation.service.ExpiryRecoveryService;
+import com.mist.commerce.domain.reservation.application.service.ExpiryRecoveryService;
 import com.mist.commerce.support.MySqlContainerTestSupport;
 import java.math.BigDecimal;
 import java.time.Duration;

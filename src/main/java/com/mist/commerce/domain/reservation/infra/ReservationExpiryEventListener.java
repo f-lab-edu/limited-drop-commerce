@@ -1,6 +1,6 @@
 package com.mist.commerce.domain.reservation.infra;
 
-import com.mist.commerce.domain.reservation.service.ExpiryRecoveryService;
+import com.mist.commerce.domain.reservation.application.service.ExpiryRecoveryService;
 import java.nio.charset.StandardCharsets;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -1,10 +1,10 @@
-package com.mist.commerce.domain.reservation.controller;
+package com.mist.commerce.domain.reservation.presentation;
 
 import com.mist.commerce.domain.reservation.dto.ReservationRequest;
 import com.mist.commerce.domain.reservation.dto.ReservationResponse;
 import com.mist.commerce.domain.reservation.dto.ReserveCommand;
 import com.mist.commerce.domain.reservation.dto.ReserveResult;
-import com.mist.commerce.domain.reservation.service.ReservationFacade;
+import com.mist.commerce.domain.reservation.application.ReservationFacade;
 import com.mist.commerce.global.response.ApiResponse;
 import jakarta.validation.Valid;
 import java.time.Clock;

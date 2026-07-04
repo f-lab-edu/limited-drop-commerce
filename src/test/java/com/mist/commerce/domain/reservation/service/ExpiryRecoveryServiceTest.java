@@ -9,6 +9,7 @@ import com.mist.commerce.domain.order.entity.Order;
 import com.mist.commerce.domain.order.entity.OrderItem;
 import com.mist.commerce.domain.order.entity.OrderStatus;
 import com.mist.commerce.domain.order.repository.OrderRepository;
+import com.mist.commerce.domain.reservation.application.service.ExpiryRecoveryService;
 import com.mist.commerce.domain.reservation.entity.InventoryReservation;
 import com.mist.commerce.domain.reservation.entity.ReservationStatus;
 import com.mist.commerce.domain.reservation.infra.RedisOptionStockRepository;

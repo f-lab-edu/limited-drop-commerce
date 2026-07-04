@@ -1,4 +1,4 @@
-package com.mist.commerce.domain.reservation.support;
+package com.mist.commerce.domain.reservation.application.support;
 
 import com.mist.commerce.domain.reservation.dto.ReserveCommand;
 import com.mist.commerce.global.util.HashUtils;
