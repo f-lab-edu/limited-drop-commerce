@@ -12,6 +12,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.mist.commerce.common.idempotency.ClaimResult;
+import com.mist.commerce.common.idempotency.ClaimStatus;
+import com.mist.commerce.common.idempotency.IdempotencyClaimResolver;
 import com.mist.commerce.domain.event.entity.EventItemOptionStock;
 import com.mist.commerce.domain.event.repository.EventItemOptionStockRepository;
 import com.mist.commerce.domain.order.entity.Order;
@@ -25,13 +28,11 @@ import com.mist.commerce.domain.order.exception.OrderNotFoundException;
 import com.mist.commerce.domain.order.repository.OrderRepository;
 import com.mist.commerce.domain.reservation.entity.InventoryReservation;
 import com.mist.commerce.domain.reservation.entity.ReservationStatus;
-import com.mist.commerce.common.idempotency.ClaimResult;
-import com.mist.commerce.common.idempotency.ClaimStatus;
-import com.mist.commerce.infra.redis.idempotency.IdempotencyRedisRepository;
 import com.mist.commerce.domain.reservation.infra.RedisOptionStockRepository;
 import com.mist.commerce.domain.reservation.infra.RedisReservationExpiryStore;
 import com.mist.commerce.domain.reservation.repository.InventoryReservationRepository;
 import com.mist.commerce.global.exception.BusinessException;
+import com.mist.commerce.infra.redis.idempotency.IdempotencyRedisRepository;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Duration;
@@ -45,8 +46,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
 import org.mockito.InOrder;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -90,6 +91,9 @@ class OrderCancelServiceTest {
     @Mock
     private IdempotencyRedisRepository idempotencyRedisRepository;
 
+    @Mock
+    private IdempotencyClaimResolver idempotencyClaimResolver;
+
     private OrderCancelService orderCancelService;
 
     @BeforeEach
@@ -103,6 +107,7 @@ class OrderCancelServiceTest {
                 optionStockRedisRepository,
                 reservationExpiryRedisRepository,
                 idempotencyRedisRepository,
+                idempotencyClaimResolver,
                 CLOCK);
     }
 

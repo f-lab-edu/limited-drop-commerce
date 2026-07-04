@@ -12,6 +12,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.mist.commerce.common.idempotency.IdempotencyClaimResolver;
 import com.mist.commerce.domain.order.entity.Order;
 import com.mist.commerce.domain.order.entity.OrderItem;
 import com.mist.commerce.domain.order.entity.OrderStatus;
@@ -109,6 +110,9 @@ class PaymentServiceTest {
     @Mock
     private IdempotencyRedisRepository idempotencyRedisRepository;
 
+    @Mock
+    private IdempotencyClaimResolver idempotencyClaimResolver;
+
     private PaymentService paymentService;
 
     @BeforeEach
@@ -133,6 +137,7 @@ class PaymentServiceTest {
                 paymentGateway,
                 eventPublisher,
                 idempotencyRedisRepository,
+                idempotencyClaimResolver,
                 CLOCK);
     }
 

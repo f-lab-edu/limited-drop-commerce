@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.mist.commerce.common.idempotency.IdempotencyClaimResolver;
 import com.mist.commerce.domain.event.entity.Event;
 import com.mist.commerce.domain.event.entity.EventItem;
 import com.mist.commerce.domain.event.entity.EventItemOptionStock;
@@ -93,6 +94,9 @@ class ReservationServiceTest {
     @Mock
     private RedisReservationExpiryStore reservationExpiryRedisRepository;
 
+    @Mock
+    private IdempotencyClaimResolver idempotencyClaimResolver;
+
     private ReservationService reservationService;
 
     @BeforeEach
@@ -108,6 +112,7 @@ class ReservationServiceTest {
                 optionStockRedisRepository,
                 idempotencyRedisRepository,
                 reservationExpiryRedisRepository,
+                idempotencyClaimResolver,
                 CLOCK);
     }
 
