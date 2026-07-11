@@ -1,10 +1,10 @@
 package com.mist.commerce.domain.reservation.presentation;
 
+import com.mist.commerce.domain.reservation.application.service.ReservationService;
 import com.mist.commerce.domain.reservation.dto.ReservationRequest;
 import com.mist.commerce.domain.reservation.dto.ReservationResponse;
 import com.mist.commerce.domain.reservation.dto.ReserveCommand;
 import com.mist.commerce.domain.reservation.dto.ReserveResult;
-import com.mist.commerce.domain.reservation.application.ReservationFacade;
 import com.mist.commerce.global.response.ApiResponse;
 import jakarta.validation.Valid;
 import java.time.Clock;
@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class ReservationController {
 
-    private final ReservationFacade reservationFacade;
+    private final ReservationService reservationService;
     private final Clock clock;
 
     @PostMapping
@@ -39,7 +39,7 @@ public class ReservationController {
                 request.eventItemOptionStockId(),
                 request.quantity(),
                 idempotencyKey);
-        ReserveResult result = reservationFacade.reserve(command);
+        ReserveResult result = reservationService.reserve(command);
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(

@@ -1,5 +1,8 @@
 package com.mist.commerce.domain.reservation.dto;
 
+import lombok.Builder;
+
+@Builder
 public record ReserveCommand(
         Long userId,
         Long eventId,
