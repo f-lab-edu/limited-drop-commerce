@@ -1,7 +1,6 @@
 package com.mist.commerce.domain.payment.service;
 
 import com.mist.commerce.common.idempotency.ClaimResult;
-import com.mist.commerce.common.idempotency.IdempotencyClaimResolver;
 import com.mist.commerce.common.idempotency.IdempotencyStore;
 import com.mist.commerce.domain.order.entity.Order;
 import com.mist.commerce.domain.order.entity.OrderStatus;
@@ -28,7 +27,6 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -50,7 +48,6 @@ public class PaymentService {
     private final PaymentEventPublisher eventPublisher;
     private final IdempotencyStore idempotencyStore;
 
-    private final IdempotencyClaimResolver idempotencyClaimResolver;
     private final Clock clock;
 
     @Transactional(noRollbackFor = PaymentFailedException.class)
@@ -69,10 +66,11 @@ public class PaymentService {
                 fingerprint,
                 IDEMPOTENCY_TTL);
 
-        Optional<PaymentResult> resolved = idempotencyClaimResolver.resolve(claimResult, PaymentResult.class);
-        if (resolved.isPresent()) {
-            return resolved.get();
-        }
+//        Optional<PaymentResult> resolved = idempotencyClaimResolver.resolve(claimResult, PaymentResult.class);
+//        if (resolved.isPresent()) {
+//            return resolved.get();
+//        }
+
 
         boolean idempotencySynchronizationRegistered = false;
 

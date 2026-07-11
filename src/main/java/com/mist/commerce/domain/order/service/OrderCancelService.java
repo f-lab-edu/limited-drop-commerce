@@ -1,7 +1,6 @@
 package com.mist.commerce.domain.order.service;
 
 import com.mist.commerce.common.idempotency.ClaimResult;
-import com.mist.commerce.common.idempotency.IdempotencyClaimResolver;
 import com.mist.commerce.common.idempotency.IdempotencyStore;
 import com.mist.commerce.domain.event.exception.EventItemOptionNotFoundException;
 import com.mist.commerce.domain.event.repository.EventItemOptionStockRepository;
@@ -23,7 +22,6 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,7 +41,6 @@ public class OrderCancelService {
     private final ReservationExpiryStore reservationExpiryStore;
     private final IdempotencyStore idempotencyStore;
 
-    private final IdempotencyClaimResolver idempotencyClaimResolver;
     private final Clock clock;
 
     @Transactional
@@ -61,10 +58,10 @@ public class OrderCancelService {
                 fingerprint,
                 IDEMPOTENCY_TTL);
 
-        Optional<CancelResult> resolved = idempotencyClaimResolver.resolve(claimResult, CancelResult.class);
-        if (resolved.isPresent()) {
-            return  resolved.get();
-        }
+//        Optional<CancelResult> resolved = idempotencyClaimResolver.resolve(claimResult, CancelResult.class);
+//        if (resolved.isPresent()) {
+//            return  resolved.get();
+//        }
 
         CancelResult[] resultHolder = new CancelResult[1];
         boolean idempotencySynchronizationRegistered = false;
