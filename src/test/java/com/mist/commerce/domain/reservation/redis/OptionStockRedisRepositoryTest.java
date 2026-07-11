@@ -2,7 +2,9 @@ package com.mist.commerce.domain.reservation.redis;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.mist.commerce.domain.reservation.infra.OptionStockRedisScripts;
 import com.mist.commerce.domain.reservation.infra.RedisOptionStockRepository;
+import com.mist.commerce.infra.redis.RedisScriptLoader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -242,7 +244,11 @@ class OptionStockRedisRepositoryTest {
     }
 
     @SpringBootConfiguration
-    @Import(RedisOptionStockRepository.class)
+    @Import({
+            RedisOptionStockRepository.class,
+            OptionStockRedisScripts.class,
+            RedisScriptLoader.class
+    })
     @ImportAutoConfiguration(DataRedisAutoConfiguration.class)
     static class TestConfig {
     }

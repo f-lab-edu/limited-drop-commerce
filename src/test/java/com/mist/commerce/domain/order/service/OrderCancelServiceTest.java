@@ -14,7 +14,6 @@ import static org.mockito.Mockito.when;
 
 import com.mist.commerce.common.idempotency.ClaimResult;
 import com.mist.commerce.common.idempotency.ClaimStatus;
-import com.mist.commerce.common.idempotency.IdempotencyClaimResolver;
 import com.mist.commerce.domain.event.entity.EventItemOptionStock;
 import com.mist.commerce.domain.event.repository.EventItemOptionStockRepository;
 import com.mist.commerce.domain.order.entity.Order;
@@ -91,9 +90,6 @@ class OrderCancelServiceTest {
     @Mock
     private IdempotencyRedisRepository idempotencyRedisRepository;
 
-    @Mock
-    private IdempotencyClaimResolver idempotencyClaimResolver;
-
     private OrderCancelService orderCancelService;
 
     @BeforeEach
@@ -107,7 +103,6 @@ class OrderCancelServiceTest {
                 optionStockRedisRepository,
                 reservationExpiryRedisRepository,
                 idempotencyRedisRepository,
-                idempotencyClaimResolver,
                 CLOCK);
     }
 

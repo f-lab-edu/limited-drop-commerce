@@ -11,6 +11,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.mist.commerce.common.idempotency.IdempotencyKeyGenerator;
+import com.mist.commerce.common.idempotency.IdempotencyStore;
 import com.mist.commerce.domain.event.exception.StockExhaustedException;
 import com.mist.commerce.domain.reservation.dto.ReservationRequest;
 import com.mist.commerce.domain.reservation.presentation.ReservationController;
@@ -71,6 +73,12 @@ class ReservationControllerTest {
 
     @MockitoBean
     private OAuth2LoginFailureHandler oAuth2LoginFailureHandler;
+
+    @MockitoBean
+    private IdempotencyStore idempotencyStore;
+
+    @MockitoBean
+    private IdempotencyKeyGenerator idempotencyKeyGenerator;
 
     @Test
     @DisplayName("TC-RES-CTRL-IDEM-001: Idempotency-Key 헤더 포함 정상 요청은 command에 idempotencyKey를 싣는다")

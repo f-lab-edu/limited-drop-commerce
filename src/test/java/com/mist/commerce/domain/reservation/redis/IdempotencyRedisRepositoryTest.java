@@ -4,7 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.mist.commerce.common.idempotency.ClaimResult;
 import com.mist.commerce.common.idempotency.ClaimStatus;
+import com.mist.commerce.infra.redis.RedisScriptLoader;
 import com.mist.commerce.infra.redis.idempotency.IdempotencyRedisRepository;
+import com.mist.commerce.infra.redis.idempotency.IdempotencyRedisScripts;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -260,7 +262,11 @@ class IdempotencyRedisRepositoryTest {
     }
 
     @SpringBootConfiguration
-    @Import(IdempotencyRedisRepository.class)
+    @Import({
+            IdempotencyRedisRepository.class,
+            IdempotencyRedisScripts.class,
+            RedisScriptLoader.class
+    })
     @ImportAutoConfiguration(DataRedisAutoConfiguration.class)
     static class TestConfig {
     }
