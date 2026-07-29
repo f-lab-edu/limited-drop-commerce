@@ -84,7 +84,7 @@ class RedisReservationExpiryStoreTest {
     @DisplayName("TC-EXPIRY-MARKER-003: orderIdFromKey는 만료 마커 키에서 orderId 문자열을 파싱한다")
     void orderIdFromKey_whenExpiryMarkerKey_returnsOrderId() {
         ReservationExpiryKey expiryKey = ReservationExpiryKey.from("reservation:expiry:42");
-        assertThat(expiryKey.orderId()).isEqualTo("42");
+        assertThat(expiryKey.orderId()).isEqualTo(42);
     }
 
     @Test

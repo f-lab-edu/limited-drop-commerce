@@ -12,7 +12,10 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.mist.commerce.common.idempotency.IdempotencyClaimResolver;
+import com.mist.commerce.common.idempotency.ClaimResult;
+import com.mist.commerce.common.idempotency.ClaimStatus;
+import com.mist.commerce.common.idempotency.exception.IdempotencyKeyReusedException;
+import com.mist.commerce.common.idempotency.exception.InProgressException;
 import com.mist.commerce.domain.order.entity.Order;
 import com.mist.commerce.domain.order.entity.OrderItem;
 import com.mist.commerce.domain.order.entity.OrderStatus;
@@ -34,12 +37,8 @@ import com.mist.commerce.domain.payment.gateway.PaymentApprovalCommand;
 import com.mist.commerce.domain.payment.gateway.PaymentGateway;
 import com.mist.commerce.domain.payment.repository.PaymentRepository;
 import com.mist.commerce.domain.payment.repository.PaymentTransactionRepository;
-import com.mist.commerce.common.idempotency.exception.IdempotencyKeyReusedException;
-import com.mist.commerce.common.idempotency.exception.InProgressException;
-import com.mist.commerce.common.idempotency.ClaimResult;
-import com.mist.commerce.common.idempotency.ClaimStatus;
-import com.mist.commerce.infra.redis.idempotency.IdempotencyRedisRepository;
 import com.mist.commerce.global.exception.BusinessException;
+import com.mist.commerce.infra.redis.idempotency.IdempotencyRedisRepository;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Duration;
@@ -110,9 +109,6 @@ class PaymentServiceTest {
     @Mock
     private IdempotencyRedisRepository idempotencyRedisRepository;
 
-    @Mock
-    private IdempotencyClaimResolver idempotencyClaimResolver;
-
     private PaymentService paymentService;
 
     @BeforeEach
@@ -137,7 +133,6 @@ class PaymentServiceTest {
                 paymentGateway,
                 eventPublisher,
                 idempotencyRedisRepository,
-                idempotencyClaimResolver,
                 CLOCK);
     }
 
