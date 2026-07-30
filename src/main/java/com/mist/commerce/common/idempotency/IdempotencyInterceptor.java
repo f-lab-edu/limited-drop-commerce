@@ -1,10 +1,11 @@
 package com.mist.commerce.common.idempotency;
 
 import com.mist.commerce.domain.reservation.dto.ReservePolicy;
+import com.mist.commerce.global.util.CharsetUtils;
+import com.mist.commerce.global.util.ResponseBodyUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +34,12 @@ public class IdempotencyInterceptor implements HandlerInterceptor {
 
         if (resolver == null) {
             return true;
+        }
+
+        // claim 전에 검증 — 여기서 실패하면 남는 키가 없다
+        if (WebUtils.getNativeResponse(response, ContentCachingResponseWrapper.class) == null) {
+            throw new IllegalStateException(
+                    "ContentCachingResponseWrapper is required for idempotent requests. Check CachedBodyFilter registration.");
         }
 
         IdempotencyRequest resolve = resolver.resolve(request);
@@ -90,9 +97,9 @@ public class IdempotencyInterceptor implements HandlerInterceptor {
                 return;
             }
 
-            String responseBody = extractResponseBody(response);
+            String responseBody = ResponseBodyUtils.readCachedBody(response);
 
-            if (responseBody == null || responseBody.isBlank()) {
+            if (responseBody.isBlank()) {
                 log.warn("Idempotency response body is empty. release key. redisKey={}", redisKey);
                 idempotencyStore.release(userId, redisKey);
                 return;
@@ -141,18 +148,8 @@ public class IdempotencyInterceptor implements HandlerInterceptor {
             return null;
         }
 
-        Charset charset = getCharset(wrapper);
+        Charset charset = CharsetUtils.getCharset(wrapper.getCharacterEncoding());
 
         return new String(content, charset);
-    }
-
-    private Charset getCharset(HttpServletResponse response) {
-        String encoding = response.getCharacterEncoding();
-
-        if (encoding == null || encoding.isBlank()) {
-            return StandardCharsets.UTF_8;
-        }
-
-        return Charset.forName(encoding);
     }
 }

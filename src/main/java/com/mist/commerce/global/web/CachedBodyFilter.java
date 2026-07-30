@@ -8,6 +8,7 @@ import org.springframework.http.MediaType;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import org.springframework.web.util.ContentCachingResponseWrapper;
 
 public class CachedBodyFilter extends OncePerRequestFilter {
 
@@ -28,9 +29,13 @@ public class CachedBodyFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
-        CachedBodyHttpServletRequest wrappedRequest =
-                new CachedBodyHttpServletRequest(request);
+        CachedBodyHttpServletRequest wrappedRequest = new CachedBodyHttpServletRequest(request);
+        ContentCachingResponseWrapper wrappedResponse = new ContentCachingResponseWrapper(response);
 
-        filterChain.doFilter(wrappedRequest, response);
+        try {
+            filterChain.doFilter(wrappedRequest, wrappedResponse);
+        } finally {
+            wrappedResponse.copyBodyToResponse();
+        }
     }
 }
