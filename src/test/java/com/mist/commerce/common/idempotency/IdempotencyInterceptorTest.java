@@ -40,12 +40,15 @@ class IdempotencyInterceptorTest {
     private IdempotencyInterceptor interceptor;
     private MockHttpServletRequest request;
     private MockHttpServletResponse response;
+    private ContentCachingResponseWrapper wrapper;
 
     @BeforeEach
     void setUp() {
         interceptor = new IdempotencyInterceptor(List.of(resolver), idempotencyStore, keyGenerator);
         request = new MockHttpServletRequest("POST", "/api/v1/reservations");
         response = new MockHttpServletResponse();
+        // 운영에서는 CachedBodyFilter가 응답을 감싼 뒤 인터셉터로 전달한다
+        wrapper = new ContentCachingResponseWrapper(response);
     }
 
     // --- preHandle ---------------------------------------------------------
@@ -55,7 +58,7 @@ class IdempotencyInterceptorTest {
     void preHandle_whenNoResolverSupports_passesThroughWithoutClaim() throws Exception {
         when(resolver.supports(request)).thenReturn(false);
 
-        boolean proceed = interceptor.preHandle(request, response, new Object());
+        boolean proceed = interceptor.preHandle(request, wrapper, new Object());
 
         assertThat(proceed).isTrue();
         verifyNoInteractions(keyGenerator, idempotencyStore);
@@ -66,7 +69,7 @@ class IdempotencyInterceptorTest {
     void preHandle_whenClaimed_proceedsAndStoresAttributes() throws Exception {
         givenClaim(new ClaimResult(ClaimStatus.CLAIMED, null));
 
-        boolean proceed = interceptor.preHandle(request, response, new Object());
+        boolean proceed = interceptor.preHandle(request, wrapper, new Object());
 
         assertThat(proceed).isTrue();
         assertThat(request.getAttribute(IdempotencyInterceptor.IDEMPOTENCY_USER_ID)).isEqualTo(USER_ID_ATTR);
@@ -79,7 +82,8 @@ class IdempotencyInterceptorTest {
     void preHandle_whenCompleted_writesStoredPayloadAndStops() throws Exception {
         givenClaim(new ClaimResult(ClaimStatus.COMPLETED, PAYLOAD));
 
-        boolean proceed = interceptor.preHandle(request, response, new Object());
+        boolean proceed = interceptor.preHandle(request, wrapper, new Object());
+        wrapper.copyBodyToResponse();
 
         assertThat(proceed).isFalse();
         assertThat(response.getStatus()).isEqualTo(200);
@@ -92,7 +96,8 @@ class IdempotencyInterceptorTest {
     void preHandle_whenInProgress_respondsConflictAndStops() throws Exception {
         givenClaim(new ClaimResult(ClaimStatus.IN_PROGRESS, null));
 
-        boolean proceed = interceptor.preHandle(request, response, new Object());
+        boolean proceed = interceptor.preHandle(request, wrapper, new Object());
+        wrapper.copyBodyToResponse();
 
         assertThat(proceed).isFalse();
         assertThat(response.getStatus()).isEqualTo(409);
@@ -104,7 +109,8 @@ class IdempotencyInterceptorTest {
     void preHandle_whenMismatch_respondsConflictAndStops() throws Exception {
         givenClaim(new ClaimResult(ClaimStatus.MISMATCH, null));
 
-        boolean proceed = interceptor.preHandle(request, response, new Object());
+        boolean proceed = interceptor.preHandle(request, wrapper, new Object());
+        wrapper.copyBodyToResponse();
 
         assertThat(proceed).isFalse();
         assertThat(response.getStatus()).isEqualTo(409);
@@ -116,7 +122,7 @@ class IdempotencyInterceptorTest {
     @Test
     @DisplayName("멱등성 속성이 없으면(대상이 아니면) store를 건드리지 않는다")
     void afterCompletion_whenNotClaimedRequest_doesNothing() throws Exception {
-        interceptor.afterCompletion(request, response, new Object(), null);
+        interceptor.afterCompletion(request, wrapper, new Object(), null);
 
         verifyNoInteractions(idempotencyStore);
     }
@@ -125,7 +131,6 @@ class IdempotencyInterceptorTest {
     @DisplayName("정상 응답이면 응답 본문으로 멱등키를 완료 처리한다")
     void afterCompletion_whenSuccess_completesWithResponseBody() throws Exception {
         markClaimed(request);
-        ContentCachingResponseWrapper wrapper = new ContentCachingResponseWrapper(response);
         wrapper.getWriter().write(PAYLOAD);
         wrapper.getWriter().flush();
 
@@ -140,7 +145,7 @@ class IdempotencyInterceptorTest {
     void afterCompletion_whenExceptionThrown_releasesKey() throws Exception {
         markClaimed(request);
 
-        interceptor.afterCompletion(request, response, new Object(), new RuntimeException("boom"));
+        interceptor.afterCompletion(request, wrapper, new Object(), new RuntimeException("boom"));
 
         verify(idempotencyStore).release(USER_ID, REDIS_KEY);
         verify(idempotencyStore, never()).complete(any(), any(), any(), any());
@@ -150,9 +155,9 @@ class IdempotencyInterceptorTest {
     @DisplayName("2xx가 아닌 상태 코드면 멱등키를 해제한다")
     void afterCompletion_whenNonSuccessStatus_releasesKey() throws Exception {
         markClaimed(request);
-        response.setStatus(500);
+        wrapper.setStatus(500);
 
-        interceptor.afterCompletion(request, response, new Object(), null);
+        interceptor.afterCompletion(request, wrapper, new Object(), null);
 
         verify(idempotencyStore).release(USER_ID, REDIS_KEY);
         verify(idempotencyStore, never()).complete(any(), any(), any(), any());
@@ -162,7 +167,6 @@ class IdempotencyInterceptorTest {
     @DisplayName("응답 본문이 비어 있으면 멱등키를 해제한다")
     void afterCompletion_whenResponseBodyEmpty_releasesKey() throws Exception {
         markClaimed(request);
-        ContentCachingResponseWrapper wrapper = new ContentCachingResponseWrapper(response);
 
         interceptor.afterCompletion(request, wrapper, new Object(), null);
 
