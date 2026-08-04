@@ -1,11 +1,9 @@
 package com.mist.commerce.common.idempotency;
 
 import com.mist.commerce.domain.reservation.dto.ReservePolicy;
-import com.mist.commerce.global.util.CharsetUtils;
 import com.mist.commerce.global.util.ResponseBodyUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.nio.charset.Charset;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -80,44 +78,31 @@ public class IdempotencyInterceptor implements HandlerInterceptor {
     @Override
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler,
                                 @Nullable Exception ex) throws Exception {
-        String requestUserId = (String) request.getAttribute(IDEMPOTENCY_USER_ID);
-        String redisKey = (String) request.getAttribute(IDEMPOTENCY_REDIS_KEY);
-        String fingerprint = (String) request.getAttribute(IDEMPOTENCY_FINGERPRINT);
+        IdempotencyContext context = IdempotencyContext.from(request);
 
         // 멱등성 대상이 아니거나, preHandle에서 CLAIMED 되지 않은 요청
-        if (requestUserId == null || redisKey == null || fingerprint == null) {
+        if (context == null) {
             return;
         }
 
         try {
 
-            Long userId = Long.valueOf(requestUserId);
             if (isFailed(response, ex)) {
-                idempotencyStore.release(userId, redisKey);
+                idempotencyStore.release(context.userId(), context.redisKey());
                 return;
             }
 
             String responseBody = ResponseBodyUtils.readCachedBody(response);
 
             if (responseBody.isBlank()) {
-                log.warn("Idempotency response body is empty. release key. redisKey={}", redisKey);
-                idempotencyStore.release(userId, redisKey);
+                log.warn("Idempotency response body is empty. release key. redisKey={}", context.redisKey());
+                idempotencyStore.release(context.userId(), context.redisKey());
                 return;
             }
 
-            idempotencyStore.complete(
-                    userId,
-                    redisKey,
-                    fingerprint,
-                    responseBody
-            );
+            idempotencyStore.complete(context.userId(), context.redisKey(), context.fingerprint(), responseBody);
         } catch (Exception e) {
-            log.error(
-                    "Failed to process idempotency afterCompletion. redisKey={}, fingerprint={}",
-                    redisKey,
-                    fingerprint,
-                    e
-            );
+            log.error("Failed to process idempotency afterCompletion. context={}", context, e);
         }
     }
 
@@ -132,24 +117,5 @@ public class IdempotencyInterceptor implements HandlerInterceptor {
         return ex != null
                 || response.getStatus() < 200
                 || response.getStatus() >= 300;
-    }
-
-    private String extractResponseBody(HttpServletResponse response) {
-        ContentCachingResponseWrapper wrapper =
-                WebUtils.getNativeResponse(response, ContentCachingResponseWrapper.class);
-
-        if (wrapper == null) {
-            throw new IllegalStateException("ContentCachingResponseWrapper is required.");
-        }
-
-        byte[] content = wrapper.getContentAsByteArray();
-
-        if (content.length == 0) {
-            return null;
-        }
-
-        Charset charset = CharsetUtils.getCharset(wrapper.getCharacterEncoding());
-
-        return new String(content, charset);
     }
 }
