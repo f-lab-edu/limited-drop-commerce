@@ -9,4 +9,8 @@ public record IdempotencyRequest(
         String idempotencyKey,
         String fingerprint
 ) {
+
+    public String generate() {
+        return scope + ":" + idempotencyKey;
+    }
 }

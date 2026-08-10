@@ -18,12 +18,8 @@ import org.springframework.web.util.WebUtils;
 @Slf4j
 public class IdempotencyInterceptor implements HandlerInterceptor {
 
-    public static final String IDEMPOTENCY_USER_ID = "idempotency.userId";
-    public static final String IDEMPOTENCY_REDIS_KEY = "idempotency.redisKey";
-    public static final String IDEMPOTENCY_FINGERPRINT = "idempotency.fingerprint";
     private final List<IdempotencyRequestResolver> resolvers;
     private final IdempotencyStore idempotencyStore;
-    private final IdempotencyKeyGenerator keyGenerator;
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
@@ -41,7 +37,7 @@ public class IdempotencyInterceptor implements HandlerInterceptor {
         }
 
         IdempotencyRequest resolve = resolver.resolve(request);
-        String redisKey = keyGenerator.generate(resolve);
+        String redisKey = resolve.generate();
 
         ClaimResult claimResult = idempotencyStore.claim(
                 resolve.userId(),

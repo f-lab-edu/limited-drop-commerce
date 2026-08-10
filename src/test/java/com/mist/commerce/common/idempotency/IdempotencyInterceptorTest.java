@@ -34,9 +34,6 @@ class IdempotencyInterceptorTest {
     @Mock
     private IdempotencyStore idempotencyStore;
 
-    @Mock
-    private IdempotencyKeyGenerator keyGenerator;
-
     private IdempotencyInterceptor interceptor;
     private MockHttpServletRequest request;
     private MockHttpServletResponse response;
@@ -44,7 +41,7 @@ class IdempotencyInterceptorTest {
 
     @BeforeEach
     void setUp() {
-        interceptor = new IdempotencyInterceptor(List.of(resolver), idempotencyStore, keyGenerator);
+        interceptor = new IdempotencyInterceptor(List.of(resolver), idempotencyStore);
         request = new MockHttpServletRequest("POST", "/api/v1/reservations");
         response = new MockHttpServletResponse();
         // 운영에서는 CachedBodyFilter가 응답을 감싼 뒤 인터셉터로 전달한다
@@ -61,7 +58,7 @@ class IdempotencyInterceptorTest {
         boolean proceed = interceptor.preHandle(request, wrapper, new Object());
 
         assertThat(proceed).isTrue();
-        verifyNoInteractions(keyGenerator, idempotencyStore);
+        verifyNoInteractions(idempotencyStore);
     }
 
     @Test
@@ -182,7 +179,6 @@ class IdempotencyInterceptorTest {
                 .build();
         when(resolver.supports(request)).thenReturn(true);
         when(resolver.resolve(request)).thenReturn(idempotencyRequest);
-        when(keyGenerator.generate(idempotencyRequest)).thenReturn(REDIS_KEY);
         when(idempotencyStore.claim(USER_ID, REDIS_KEY, FINGERPRINT, ReservePolicy.PAYMENT_TTL))
                 .thenReturn(claimResult);
     }

@@ -10,7 +10,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.mist.commerce.common.idempotency.IdempotencyKeyGenerator;
 import com.mist.commerce.common.idempotency.IdempotencyStore;
 import com.mist.commerce.domain.brand.exception.BrandNotFoundException;
 import com.mist.commerce.domain.product.dto.CreateProductRequest;
@@ -60,9 +59,6 @@ class ProductControllerTest {
 
     @MockitoBean
     private IdempotencyStore idempotencyStore;
-
-    @MockitoBean
-    private IdempotencyKeyGenerator idempotencyKeyGenerator;
 
     @Test
     @DisplayName("COMPANY가 유효한 본문으로 상품을 등록하면 생성 응답을 반환한다")

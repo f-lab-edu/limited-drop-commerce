@@ -5,9 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-class IdempotencyKeyGeneratorTest {
-
-    private final IdempotencyKeyGenerator keyGenerator = new IdempotencyKeyGenerator();
+class IdempotencyRequestTest {
 
     @Test
     @DisplayName("scope와 idempotencyKey를 콜론으로 이어 Redis 키를 만든다")
@@ -19,7 +17,7 @@ class IdempotencyKeyGeneratorTest {
                 .fingerprint("fp")
                 .build();
 
-        String key = keyGenerator.generate(request);
+        String key = request.generate();
 
         assertThat(key).isEqualTo("reservation:idem-key-001");
     }
