@@ -68,9 +68,8 @@ public class IdempotencyInterceptor implements HandlerInterceptor {
             return false;
         }
 
-        request.setAttribute(IDEMPOTENCY_USER_ID, String.valueOf(resolve.userId()));
-        request.setAttribute(IDEMPOTENCY_REDIS_KEY, redisKey);
-        request.setAttribute(IDEMPOTENCY_FINGERPRINT, resolve.fingerprint());
+        new IdempotencyContext(resolve.userId(), redisKey, resolve.fingerprint())
+                .writeTo(request);
 
         return true;
     }

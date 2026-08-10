@@ -71,10 +71,9 @@ class IdempotencyInterceptorTest {
 
         boolean proceed = interceptor.preHandle(request, wrapper, new Object());
 
+        IdempotencyContext context = IdempotencyContext.from(request);
         assertThat(proceed).isTrue();
-        assertThat(request.getAttribute(IdempotencyInterceptor.IDEMPOTENCY_USER_ID)).isEqualTo(USER_ID_ATTR);
-        assertThat(request.getAttribute(IdempotencyInterceptor.IDEMPOTENCY_REDIS_KEY)).isEqualTo(REDIS_KEY);
-        assertThat(request.getAttribute(IdempotencyInterceptor.IDEMPOTENCY_FINGERPRINT)).isEqualTo(FINGERPRINT);
+        assertThat(context).isEqualTo(new IdempotencyContext(USER_ID, REDIS_KEY, FINGERPRINT));
     }
 
     @Test
@@ -189,8 +188,6 @@ class IdempotencyInterceptorTest {
     }
 
     private void markClaimed(MockHttpServletRequest request) {
-        request.setAttribute(IdempotencyInterceptor.IDEMPOTENCY_USER_ID, USER_ID_ATTR);
-        request.setAttribute(IdempotencyInterceptor.IDEMPOTENCY_REDIS_KEY, REDIS_KEY);
-        request.setAttribute(IdempotencyInterceptor.IDEMPOTENCY_FINGERPRINT, FINGERPRINT);
+        new IdempotencyContext(USER_ID, REDIS_KEY, FINGERPRINT).writeTo(request);
     }
 }
