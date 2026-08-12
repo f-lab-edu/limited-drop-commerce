@@ -1,7 +1,7 @@
-package com.mist.commerce.domain.reservation.application.Idempotency;
+package com.mist.commerce.domain.reservation.application.idempotency;
 
-import com.mist.commerce.common.idempotency.IdempotencyRequest;
-import com.mist.commerce.common.idempotency.IdempotencyRequestResolver;
+import com.mist.commerce.common.idempotency.model.IdempotencyRequest;
+import com.mist.commerce.common.idempotency.web.IdempotencyRequestResolver;
 import com.mist.commerce.domain.reservation.application.support.ReserveFingerprintGenerator;
 import com.mist.commerce.domain.reservation.dto.ReservationRequest;
 import com.mist.commerce.domain.reservation.dto.ReserveCommand;

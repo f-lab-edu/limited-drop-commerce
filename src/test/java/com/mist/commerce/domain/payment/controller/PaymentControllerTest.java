@@ -11,8 +11,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.mist.commerce.common.idempotency.IdempotencyKeyGenerator;
-import com.mist.commerce.common.idempotency.IdempotencyStore;
+import com.mist.commerce.common.idempotency.port.IdempotencyStore;
 import com.mist.commerce.domain.order.exception.OrderCannotPayException;
 import com.mist.commerce.domain.order.exception.OrderForbiddenException;
 import com.mist.commerce.domain.order.exception.OrderNotFoundException;
@@ -78,9 +77,6 @@ class PaymentControllerTest {
 
     @MockitoBean
     private IdempotencyStore idempotencyStore;
-
-    @MockitoBean
-    private IdempotencyKeyGenerator idempotencyKeyGenerator;
 
     @Test
     @DisplayName("TC-PAY-CTL-001: 인증된 사용자가 필수 헤더와 유효 body로 결제 요청하면 200과 결제 완료 응답을 반환한다")

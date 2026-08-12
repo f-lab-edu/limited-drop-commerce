@@ -1,5 +1,6 @@
-package com.mist.commerce.common.idempotency;
+package com.mist.commerce.common.idempotency.port;
 
+import com.mist.commerce.common.idempotency.model.ClaimResult;
 import java.time.Duration;
 
 public interface IdempotencyStore {

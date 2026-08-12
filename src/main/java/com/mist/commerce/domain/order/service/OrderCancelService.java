@@ -1,7 +1,7 @@
 package com.mist.commerce.domain.order.service;
 
-import com.mist.commerce.common.idempotency.ClaimResult;
-import com.mist.commerce.common.idempotency.IdempotencyStore;
+import com.mist.commerce.common.idempotency.model.ClaimResult;
+import com.mist.commerce.common.idempotency.port.IdempotencyStore;
 import com.mist.commerce.domain.event.exception.EventItemOptionNotFoundException;
 import com.mist.commerce.domain.event.repository.EventItemOptionStockRepository;
 import com.mist.commerce.domain.order.entity.Order;

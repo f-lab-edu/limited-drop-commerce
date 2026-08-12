@@ -11,8 +11,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.mist.commerce.common.idempotency.IdempotencyKeyGenerator;
-import com.mist.commerce.common.idempotency.IdempotencyStore;
+import com.mist.commerce.common.idempotency.port.IdempotencyStore;
 import com.mist.commerce.domain.order.entity.OrderStatus;
 import com.mist.commerce.domain.order.exception.OrderAlreadyCancelledException;
 import com.mist.commerce.domain.order.exception.OrderCancelTemporarilyUnavailableException;
@@ -75,9 +74,6 @@ class OrderControllerTest {
 
     @MockitoBean
     private IdempotencyStore idempotencyStore;
-
-    @MockitoBean
-    private IdempotencyKeyGenerator idempotencyKeyGenerator;
 
     @Test
     @DisplayName("TC-OC-CTL-01: 인증된 사용자가 필수 헤더로 취소 요청하면 200과 취소 응답을 반환한다")

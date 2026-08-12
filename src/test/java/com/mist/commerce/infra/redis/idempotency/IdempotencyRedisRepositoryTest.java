@@ -1,12 +1,10 @@
-package com.mist.commerce.domain.reservation.redis;
+package com.mist.commerce.infra.redis.idempotency;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.mist.commerce.common.idempotency.ClaimResult;
-import com.mist.commerce.common.idempotency.ClaimStatus;
+import com.mist.commerce.common.idempotency.model.ClaimResult;
+import com.mist.commerce.common.idempotency.model.ClaimStatus;
 import com.mist.commerce.infra.redis.RedisScriptLoader;
-import com.mist.commerce.infra.redis.idempotency.IdempotencyRedisRepository;
-import com.mist.commerce.infra.redis.idempotency.IdempotencyRedisScripts;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;

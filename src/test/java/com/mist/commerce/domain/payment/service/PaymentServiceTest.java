@@ -12,8 +12,8 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.mist.commerce.common.idempotency.ClaimResult;
-import com.mist.commerce.common.idempotency.ClaimStatus;
+import com.mist.commerce.common.idempotency.model.ClaimResult;
+import com.mist.commerce.common.idempotency.model.ClaimStatus;
 import com.mist.commerce.common.idempotency.exception.IdempotencyKeyReusedException;
 import com.mist.commerce.common.idempotency.exception.InProgressException;
 import com.mist.commerce.domain.order.entity.Order;

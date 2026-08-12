@@ -1,4 +1,4 @@
-package com.mist.commerce.common.idempotency;
+package com.mist.commerce.common.idempotency.model;
 
 import lombok.Builder;
 

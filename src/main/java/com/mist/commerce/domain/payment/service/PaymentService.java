@@ -1,7 +1,7 @@
 package com.mist.commerce.domain.payment.service;
 
-import com.mist.commerce.common.idempotency.ClaimResult;
-import com.mist.commerce.common.idempotency.IdempotencyStore;
+import com.mist.commerce.common.idempotency.model.ClaimResult;
+import com.mist.commerce.common.idempotency.port.IdempotencyStore;
 import com.mist.commerce.domain.order.entity.Order;
 import com.mist.commerce.domain.order.entity.OrderStatus;
 import com.mist.commerce.domain.order.exception.OrderCannotPayException;

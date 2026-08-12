@@ -10,7 +10,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.mist.commerce.common.idempotency.IdempotencyStore;
+import com.mist.commerce.common.idempotency.port.IdempotencyStore;
 import com.mist.commerce.domain.brand.exception.BrandNotFoundException;
 import com.mist.commerce.domain.product.dto.CreateProductRequest;
 import com.mist.commerce.domain.product.dto.CreateProductResponse;

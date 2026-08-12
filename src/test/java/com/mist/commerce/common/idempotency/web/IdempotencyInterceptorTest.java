@@ -1,4 +1,4 @@
-package com.mist.commerce.common.idempotency;
+package com.mist.commerce.common.idempotency.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -7,6 +7,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.mist.commerce.common.idempotency.model.ClaimResult;
+import com.mist.commerce.common.idempotency.model.ClaimStatus;
+import com.mist.commerce.common.idempotency.model.IdempotencyContext;
+import com.mist.commerce.common.idempotency.model.IdempotencyRequest;
+import com.mist.commerce.common.idempotency.port.IdempotencyStore;
 import com.mist.commerce.domain.reservation.dto.ReservePolicy;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -68,7 +73,7 @@ class IdempotencyInterceptorTest {
 
         boolean proceed = interceptor.preHandle(request, wrapper, new Object());
 
-        IdempotencyContext context = IdempotencyContext.from(request);
+        IdempotencyContext context = IdempotencyContextHolder.get(request);
         assertThat(proceed).isTrue();
         assertThat(context).isEqualTo(new IdempotencyContext(USER_ID, REDIS_KEY, FINGERPRINT));
     }
@@ -184,6 +189,6 @@ class IdempotencyInterceptorTest {
     }
 
     private void markClaimed(MockHttpServletRequest request) {
-        new IdempotencyContext(USER_ID, REDIS_KEY, FINGERPRINT).writeTo(request);
+        IdempotencyContextHolder.set(request, new IdempotencyContext(USER_ID, REDIS_KEY, FINGERPRINT));
     }
 }

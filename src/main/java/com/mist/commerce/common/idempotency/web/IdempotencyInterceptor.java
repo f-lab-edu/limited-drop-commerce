@@ -1,5 +1,10 @@
-package com.mist.commerce.common.idempotency;
+package com.mist.commerce.common.idempotency.web;
 
+import com.mist.commerce.common.idempotency.model.ClaimResult;
+import com.mist.commerce.common.idempotency.model.ClaimStatus;
+import com.mist.commerce.common.idempotency.model.IdempotencyContext;
+import com.mist.commerce.common.idempotency.model.IdempotencyRequest;
+import com.mist.commerce.common.idempotency.port.IdempotencyStore;
 import com.mist.commerce.domain.reservation.dto.ReservePolicy;
 import com.mist.commerce.global.util.ResponseBodyUtils;
 import jakarta.servlet.http.HttpServletRequest;
@@ -64,8 +69,8 @@ public class IdempotencyInterceptor implements HandlerInterceptor {
             return false;
         }
 
-        new IdempotencyContext(resolve.userId(), redisKey, resolve.fingerprint())
-                .writeTo(request);
+        IdempotencyContext idempotencyContext = new IdempotencyContext(resolve.userId(), redisKey, resolve.fingerprint());
+        IdempotencyContextHolder.set(request, idempotencyContext);
 
         return true;
     }
@@ -73,7 +78,7 @@ public class IdempotencyInterceptor implements HandlerInterceptor {
     @Override
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler,
                                 @Nullable Exception ex) throws Exception {
-        IdempotencyContext context = IdempotencyContext.from(request);
+        IdempotencyContext context = IdempotencyContextHolder.get(request);
 
         // 멱등성 대상이 아니거나, preHandle에서 CLAIMED 되지 않은 요청
         if (context == null) {

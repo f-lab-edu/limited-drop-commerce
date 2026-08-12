@@ -1,8 +1,8 @@
 package com.mist.commerce.infra.redis.idempotency;
 
-import com.mist.commerce.common.idempotency.ClaimResult;
-import com.mist.commerce.common.idempotency.ClaimStatus;
-import com.mist.commerce.common.idempotency.IdempotencyStore;
+import com.mist.commerce.common.idempotency.model.ClaimResult;
+import com.mist.commerce.common.idempotency.model.ClaimStatus;
+import com.mist.commerce.common.idempotency.port.IdempotencyStore;
 import java.time.Duration;
 import java.util.List;
 import lombok.RequiredArgsConstructor;

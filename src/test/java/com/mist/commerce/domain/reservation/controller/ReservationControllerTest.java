@@ -11,14 +11,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.mist.commerce.common.idempotency.IdempotencyKeyGenerator;
-import com.mist.commerce.common.idempotency.IdempotencyStore;
+import com.mist.commerce.common.idempotency.port.IdempotencyStore;
 import com.mist.commerce.domain.event.exception.StockExhaustedException;
-import com.mist.commerce.domain.reservation.dto.ReservationRequest;
-import com.mist.commerce.domain.reservation.presentation.ReservationController;
 import com.mist.commerce.domain.reservation.application.service.ReservationService;
+import com.mist.commerce.domain.reservation.dto.ReservationRequest;
 import com.mist.commerce.domain.reservation.dto.ReserveCommand;
 import com.mist.commerce.domain.reservation.dto.ReserveResult;
+import com.mist.commerce.domain.reservation.presentation.ReservationController;
 import com.mist.commerce.domain.user.service.CustomOAuth2UserService;
 import com.mist.commerce.domain.user.service.TokenService;
 import com.mist.commerce.global.config.OAuth2LoginFailureHandler;
@@ -76,9 +75,6 @@ class ReservationControllerTest {
 
     @MockitoBean
     private IdempotencyStore idempotencyStore;
-
-    @MockitoBean
-    private IdempotencyKeyGenerator idempotencyKeyGenerator;
 
     @Test
     @DisplayName("TC-RES-CTRL-IDEM-001: Idempotency-Key 헤더 포함 정상 요청은 command에 idempotencyKey를 싣는다")

@@ -1,8 +1,8 @@
-package com.mist.commerce.domain.reservation.application.Idempotency;
+package com.mist.commerce.domain.reservation.application.idempotency;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.mist.commerce.common.idempotency.IdempotencyRequest;
+import com.mist.commerce.common.idempotency.model.IdempotencyRequest;
 import com.mist.commerce.domain.reservation.application.support.ReserveFingerprintGenerator;
 import com.mist.commerce.domain.reservation.dto.ReserveCommand;
 import com.mist.commerce.global.web.CachedBodyHttpServletRequest;
