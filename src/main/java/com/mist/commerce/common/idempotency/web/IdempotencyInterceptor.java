@@ -1,18 +1,18 @@
 package com.mist.commerce.common.idempotency.web;
 
 import com.mist.commerce.common.idempotency.model.ClaimResult;
-import com.mist.commerce.common.idempotency.model.ClaimStatus;
 import com.mist.commerce.common.idempotency.model.IdempotencyContext;
 import com.mist.commerce.common.idempotency.model.IdempotencyRequest;
 import com.mist.commerce.common.idempotency.port.IdempotencyStore;
-import com.mist.commerce.domain.reservation.dto.ReservePolicy;
 import com.mist.commerce.global.util.ResponseBodyUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.Nullable;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.util.ContentCachingResponseWrapper;
@@ -36,43 +36,18 @@ public class IdempotencyInterceptor implements HandlerInterceptor {
         }
 
         // claim 전에 검증 — 여기서 실패하면 남는 키가 없다
-        if (WebUtils.getNativeResponse(response, ContentCachingResponseWrapper.class) == null) {
-            throw new IllegalStateException(
-                    "ContentCachingResponseWrapper is required for idempotent requests. Check CachedBodyFilter registration.");
-        }
+        validateResponseWrapper(response);
 
-        IdempotencyRequest resolve = resolver.resolve(request);
-        String redisKey = resolve.generate();
+        IdempotencyRequest idempotencyRequest = resolver.resolve(request);
+        String redisKey = idempotencyRequest.generate();
 
         ClaimResult claimResult = idempotencyStore.claim(
-                resolve.userId(),
+                idempotencyRequest.userId(),
                 redisKey,
-                resolve.fingerprint(),
-                ReservePolicy.PAYMENT_TTL);
+                idempotencyRequest.fingerprint(),
+                idempotencyRequest.ttl());
 
-        if (claimResult.status() == ClaimStatus.COMPLETED) {
-            response.setStatus(HttpServletResponse.SC_OK);
-            response.setContentType("application/json");
-            response.getWriter().write(claimResult.resultPayload());
-            return false;
-        }
-
-        if (claimResult.status() == ClaimStatus.IN_PROGRESS) {
-            response.setStatus(HttpServletResponse.SC_CONFLICT);
-            response.getWriter().write("Request is already in progress.");
-            return false;
-        }
-
-        if (claimResult.status() == ClaimStatus.MISMATCH) {
-            response.setStatus(HttpServletResponse.SC_CONFLICT);
-            response.getWriter().write("Idempotency-Key was reused with different request.");
-            return false;
-        }
-
-        IdempotencyContext idempotencyContext = new IdempotencyContext(resolve.userId(), redisKey, resolve.fingerprint());
-        IdempotencyContextHolder.set(request, idempotencyContext);
-
-        return true;
+        return handleClaimResult(request, response, idempotencyRequest, redisKey, claimResult);
     }
 
     @Override
@@ -86,23 +61,90 @@ public class IdempotencyInterceptor implements HandlerInterceptor {
         }
 
         try {
-
-            if (isFailed(response, ex)) {
-                idempotencyStore.release(context.userId(), context.redisKey());
-                return;
-            }
-
-            String responseBody = ResponseBodyUtils.readCachedBody(response);
-
-            if (responseBody.isBlank()) {
-                log.warn("Idempotency response body is empty. release key. redisKey={}", context.redisKey());
-                idempotencyStore.release(context.userId(), context.redisKey());
-                return;
-            }
-
-            idempotencyStore.complete(context.userId(), context.redisKey(), context.fingerprint(), responseBody);
+            handleCompletion(context, response, ex);
         } catch (Exception e) {
             log.error("Failed to process idempotency afterCompletion. context={}", context, e);
+        }
+    }
+
+    private boolean handleClaimResult(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            IdempotencyRequest idempotencyRequest,
+            String redisKey,
+            ClaimResult claimResult) throws IOException {
+
+        return switch (claimResult.status()) {
+            case COMPLETED -> {
+                writeCompletedResponse(response, claimResult.resultPayload());
+                yield false;
+            }
+
+            case IN_PROGRESS -> {
+                writeConflict(response, "Request is already in progress.");
+                yield false;
+            }
+
+            case MISMATCH -> {
+                writeConflict(
+                        response,
+                        "Idempotency-Key was reused with different request."
+                );
+                yield false;
+            }
+
+            case CLAIMED -> {
+                IdempotencyContext context = new IdempotencyContext(idempotencyRequest.userId()
+                        , redisKey, idempotencyRequest.fingerprint());
+
+                IdempotencyContextHolder.set(request, context);
+                yield true;
+            }
+        };
+    }
+
+    private void handleCompletion(IdempotencyContext context, HttpServletResponse response, @Nullable Exception ex) {
+
+        if (isFailed(response, ex)) {
+            release(context);
+            return;
+        }
+
+        String responseBody = ResponseBodyUtils.readCachedBody(response);
+
+        if (responseBody.isBlank()) {
+            log.warn("Idempotency response body is empty. release key. redisKey={}", context.redisKey());
+
+            release(context);
+            return;
+        }
+
+        idempotencyStore.complete(context.userId(), context.redisKey(), context.fingerprint(), responseBody);
+    }
+
+    private void writeCompletedResponse(HttpServletResponse response, String message) throws IOException {
+        response.setStatus(HttpServletResponse.SC_OK);
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.getWriter().write(message);
+    }
+
+    private void writeConflict(HttpServletResponse response, String message) throws IOException {
+        response.setStatus(HttpServletResponse.SC_CONFLICT);
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.getWriter().write(message);
+    }
+
+    private void release(IdempotencyContext context) {
+        idempotencyStore.release(
+                context.userId(),
+                context.redisKey()
+        );
+    }
+
+    private void validateResponseWrapper(HttpServletResponse response) {
+        if (WebUtils.getNativeResponse(response, ContentCachingResponseWrapper.class) == null) {
+            throw new IllegalStateException(
+                    "ContentCachingResponseWrapper is required for idempotent requests. Check CachedBodyFilter registration.");
         }
     }
 
