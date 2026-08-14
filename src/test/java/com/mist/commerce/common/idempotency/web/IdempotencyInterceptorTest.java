@@ -181,6 +181,7 @@ class IdempotencyInterceptorTest {
                 .scope("reservation")
                 .idempotencyKey("idem-key-001")
                 .fingerprint(FINGERPRINT)
+                .ttl(ReservePolicy.PAYMENT_TTL)
                 .build();
         when(resolver.supports(request)).thenReturn(true);
         when(resolver.resolve(request)).thenReturn(idempotencyRequest);
