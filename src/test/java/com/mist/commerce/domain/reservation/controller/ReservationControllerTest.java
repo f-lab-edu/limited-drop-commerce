@@ -82,7 +82,7 @@ class ReservationControllerTest {
         given(reservationService.reserve(any(ReserveCommand.class)))
                 .willReturn(new ReserveResult(1000L, EXPIRES_AT, "PENDING_PAYMENT"));
 
-        mockMvc.perform(post("/api/v1/reservations")
+        mockMvc.perform(post("/api/v1/reservations/reserve")
                         .with(authentication(authenticatedUser()))
                         .header("Idempotency-Key", IDEMPOTENCY_KEY)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -111,7 +111,7 @@ class ReservationControllerTest {
     @Test
     @DisplayName("TC-RES-CTRL-IDEM-002: Idempotency-Key 헤더가 없으면 400 VALIDATION_ERROR를 반환하고 서비스를 호출하지 않는다")
     void reserve_withoutIdempotencyKeyHeader_returns400ValidationErrorAndDoesNotCallService() throws Exception {
-        mockMvc.perform(post("/api/v1/reservations")
+        mockMvc.perform(post("/api/v1/reservations/reserve")
                         .with(authentication(authenticatedUser()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest())))
@@ -126,7 +126,7 @@ class ReservationControllerTest {
     @Test
     @DisplayName("quantity가 0이면 400 VALIDATION_ERROR를 반환하고 서비스를 호출하지 않는다")
     void reserve_withZeroQuantity_returns400ValidationError() throws Exception {
-        mockMvc.perform(post("/api/v1/reservations")
+        mockMvc.perform(post("/api/v1/reservations/reserve")
                         .with(authentication(authenticatedUser()))
                         .header("Idempotency-Key", IDEMPOTENCY_KEY)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -149,7 +149,7 @@ class ReservationControllerTest {
     @Test
     @DisplayName("필수 필드가 null이면 400 VALIDATION_ERROR를 반환하고 서비스를 호출하지 않는다")
     void reserve_withNullRequiredField_returns400ValidationError() throws Exception {
-        mockMvc.perform(post("/api/v1/reservations")
+        mockMvc.perform(post("/api/v1/reservations/reserve")
                         .with(authentication(authenticatedUser()))
                         .header("Idempotency-Key", IDEMPOTENCY_KEY)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -175,7 +175,7 @@ class ReservationControllerTest {
         given(reservationService.reserve(any(ReserveCommand.class)))
                 .willThrow(new StockExhaustedException());
 
-        mockMvc.perform(post("/api/v1/reservations")
+        mockMvc.perform(post("/api/v1/reservations/reserve")
                         .with(authentication(authenticatedUser()))
                         .header("Idempotency-Key", IDEMPOTENCY_KEY)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -190,7 +190,7 @@ class ReservationControllerTest {
     @Test
     @DisplayName("인증 없이 예약을 요청하면 401을 반환하고 서비스를 호출하지 않는다")
     void reserve_withoutAuthentication_returns401AndDoesNotCallService() throws Exception {
-        mockMvc.perform(post("/api/v1/reservations")
+        mockMvc.perform(post("/api/v1/reservations/reserve")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest())))
                 .andExpect(status().isUnauthorized())

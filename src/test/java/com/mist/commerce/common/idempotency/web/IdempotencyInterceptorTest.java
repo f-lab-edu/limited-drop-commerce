@@ -47,7 +47,7 @@ class IdempotencyInterceptorTest {
     @BeforeEach
     void setUp() {
         interceptor = new IdempotencyInterceptor(List.of(resolver), idempotencyStore);
-        request = new MockHttpServletRequest("POST", "/api/v1/reservations");
+        request = new MockHttpServletRequest("POST", "/api/v1/reservations/reserve");
         response = new MockHttpServletResponse();
         // 운영에서는 CachedBodyFilter가 응답을 감싼 뒤 인터셉터로 전달한다
         wrapper = new ContentCachingResponseWrapper(response);

@@ -26,7 +26,7 @@ public class ReservationController {
     private final ReservationService reservationService;
     private final Clock clock;
 
-    @PostMapping
+    @PostMapping("/reserve")
     public ResponseEntity<ApiResponse<ReservationResponse>> reserve(
             @Valid @RequestBody ReservationRequest request,
             @RequestHeader("Idempotency-Key") String idempotencyKey,

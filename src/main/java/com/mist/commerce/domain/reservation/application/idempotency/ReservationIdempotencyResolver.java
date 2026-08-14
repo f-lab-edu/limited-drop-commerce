@@ -25,7 +25,7 @@ public class ReservationIdempotencyResolver implements IdempotencyRequestResolve
     @Override
     public boolean supports(HttpServletRequest request) {
         return "POST".equals(request.getMethod())
-                && "/api/v1/reservations".equals(request.getRequestURI());
+                && "/api/v1/reservations/reserve".equals(request.getRequestURI());
     }
 
     @Override

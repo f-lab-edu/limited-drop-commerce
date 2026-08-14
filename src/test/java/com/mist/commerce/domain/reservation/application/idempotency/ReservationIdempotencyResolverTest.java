@@ -38,9 +38,9 @@ class ReservationIdempotencyResolverTest {
     }
 
     @Test
-    @DisplayName("POST /api/v1/reservations 요청을 지원 대상으로 판단한다")
+    @DisplayName("POST /api/v1/reservations/reserve 요청을 지원 대상으로 판단한다")
     void supports_whenPostReservations_returnsTrue() {
-        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/reservations");
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/reservations/reserve");
 
         assertThat(resolver.supports(request)).isTrue();
     }
@@ -48,7 +48,7 @@ class ReservationIdempotencyResolverTest {
     @Test
     @DisplayName("메서드가 다르면 지원 대상이 아니다")
     void supports_whenNotPost_returnsFalse() {
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/reservations");
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/reservations/reserve");
 
         assertThat(resolver.supports(request)).isFalse();
     }
@@ -88,7 +88,7 @@ class ReservationIdempotencyResolverTest {
     }
 
     private CachedBodyHttpServletRequest cachedRequest(String body, String idempotencyKey) throws IOException {
-        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/reservations");
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/reservations/reserve");
         request.setContent(body.getBytes(StandardCharsets.UTF_8));
         request.setCharacterEncoding(StandardCharsets.UTF_8.name());
         request.addHeader("Idempotency-Key", idempotencyKey);
