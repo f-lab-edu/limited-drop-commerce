@@ -135,10 +135,7 @@ public class IdempotencyInterceptor implements HandlerInterceptor {
     }
 
     private void release(IdempotencyContext context) {
-        idempotencyStore.release(
-                context.userId(),
-                context.redisKey()
-        );
+        idempotencyStore.release(context.userId(), context.redisKey());
     }
 
     private void validateResponseWrapper(HttpServletResponse response) {
