@@ -2,7 +2,7 @@ package com.mist.commerce.infra.kafka;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.mist.commerce.domain.payment.event.PaymentCompletedEvent;
+import com.mist.commerce.domain.payment.application.listener.PaymentCompletedEvent;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;

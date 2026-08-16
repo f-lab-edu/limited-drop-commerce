@@ -1,4 +1,4 @@
-package com.mist.commerce.domain.payment.controller;
+package com.mist.commerce.domain.payment.presentation;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.hamcrest.Matchers.nullValue;
@@ -17,8 +17,8 @@ import com.mist.commerce.domain.order.exception.OrderForbiddenException;
 import com.mist.commerce.domain.order.exception.OrderNotFoundException;
 import com.mist.commerce.domain.payment.exception.PaymentAmountMismatchException;
 import com.mist.commerce.domain.payment.exception.PaymentFailedException;
-import com.mist.commerce.domain.payment.service.PaymentCommand;
-import com.mist.commerce.domain.payment.service.PaymentResult;
+import com.mist.commerce.domain.payment.dto.PaymentCommand;
+import com.mist.commerce.domain.payment.dto.PaymentResult;
 import com.mist.commerce.domain.payment.service.PaymentService;
 import com.mist.commerce.domain.user.service.CustomOAuth2UserService;
 import com.mist.commerce.domain.user.service.TokenService;
@@ -124,7 +124,7 @@ class PaymentControllerTest {
     @Test
     @DisplayName("TC-PAY-CTL-003: Idempotency-Key 헤더가 없으면 400 VALIDATION_ERROR를 반환하고 서비스를 호출하지 않는다")
     void pay_withoutIdempotencyKeyHeader_returns400AndDoesNotCallService() throws Exception {
-        mockMvc.perform(post("/api/v1/payments")
+        mockMvc.perform(post("/api/v1/payments/pay")
                         .with(authentication(authenticatedUser()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(validRequestBody()))
@@ -280,7 +280,7 @@ class PaymentControllerTest {
     }
 
     private RequestBuilder authenticatedPaymentRequest(String body) {
-        return post("/api/v1/payments")
+        return post("/api/v1/payments/pay")
                 .with(authentication(authenticatedUser()))
                 .header("Idempotency-Key", IDEMPOTENCY_KEY)
                 .contentType(MediaType.APPLICATION_JSON)

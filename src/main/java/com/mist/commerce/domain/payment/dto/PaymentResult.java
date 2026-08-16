@@ -1,4 +1,4 @@
-package com.mist.commerce.domain.payment.service;
+package com.mist.commerce.domain.payment.dto;
 
 public record PaymentResult(
         Long paymentId,

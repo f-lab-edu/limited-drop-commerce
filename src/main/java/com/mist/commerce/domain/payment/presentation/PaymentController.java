@@ -1,9 +1,9 @@
-package com.mist.commerce.domain.payment.controller;
+package com.mist.commerce.domain.payment.presentation;
 
 import com.mist.commerce.domain.payment.dto.PaymentRequest;
 import com.mist.commerce.domain.payment.dto.PaymentResponse;
-import com.mist.commerce.domain.payment.service.PaymentCommand;
-import com.mist.commerce.domain.payment.service.PaymentResult;
+import com.mist.commerce.domain.payment.dto.PaymentCommand;
+import com.mist.commerce.domain.payment.dto.PaymentResult;
 import com.mist.commerce.domain.payment.service.PaymentService;
 import com.mist.commerce.global.response.ApiResponse;
 import jakarta.validation.Valid;
@@ -25,7 +25,7 @@ public class PaymentController {
     private final PaymentService paymentService;
     private final Clock clock;
 
-    @PostMapping
+    @PostMapping("/pay")
     public ResponseEntity<ApiResponse<PaymentResponse>> pay(
             @RequestBody @Valid PaymentRequest request,
             @RequestHeader("Idempotency-Key") String idempotencyKey,

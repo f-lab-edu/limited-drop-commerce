@@ -1,7 +1,5 @@
 package com.mist.commerce.domain.payment.dto;
 
-import com.mist.commerce.domain.payment.service.PaymentResult;
-
 public record PaymentResponse(
         Long paymentId,
         String paymentNo,

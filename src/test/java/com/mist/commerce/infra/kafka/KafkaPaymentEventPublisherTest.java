@@ -8,7 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import com.mist.commerce.domain.payment.event.PaymentCompletedEvent;
+import com.mist.commerce.domain.payment.application.listener.PaymentCompletedEvent;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.concurrent.CompletableFuture;

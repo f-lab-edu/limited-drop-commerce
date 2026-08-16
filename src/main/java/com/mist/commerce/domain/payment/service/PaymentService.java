@@ -1,20 +1,18 @@
 package com.mist.commerce.domain.payment.service;
 
-import com.mist.commerce.common.idempotency.model.ClaimResult;
-import com.mist.commerce.common.idempotency.port.IdempotencyStore;
 import com.mist.commerce.domain.order.entity.Order;
 import com.mist.commerce.domain.order.entity.OrderStatus;
 import com.mist.commerce.domain.order.exception.OrderCannotPayException;
 import com.mist.commerce.domain.order.exception.OrderForbiddenException;
 import com.mist.commerce.domain.order.exception.OrderNotFoundException;
 import com.mist.commerce.domain.order.repository.OrderRepository;
+import com.mist.commerce.domain.payment.dto.PaymentCommand;
+import com.mist.commerce.domain.payment.dto.PaymentResult;
 import com.mist.commerce.domain.payment.entity.Payment;
 import com.mist.commerce.domain.payment.entity.PaymentStatus;
 import com.mist.commerce.domain.payment.entity.PaymentTransaction;
 import com.mist.commerce.domain.payment.entity.TransactionStatus;
 import com.mist.commerce.domain.payment.entity.TransactionType;
-import com.mist.commerce.domain.payment.event.PaymentCompletedEvent;
-import com.mist.commerce.domain.payment.event.PaymentEventPublisher;
 import com.mist.commerce.domain.payment.exception.PaymentAmountMismatchException;
 import com.mist.commerce.domain.payment.exception.PaymentFailedException;
 import com.mist.commerce.domain.payment.gateway.PaymentApproval;
@@ -31,8 +29,6 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Service
 @RequiredArgsConstructor
@@ -45,8 +41,6 @@ public class PaymentService {
     private final PaymentRepository paymentRepository;
     private final PaymentTransactionRepository paymentTransactionRepository;
     private final PaymentGateway paymentGateway;
-    private final PaymentEventPublisher eventPublisher;
-    private final IdempotencyStore idempotencyStore;
 
     private final Clock clock;
 
@@ -58,21 +52,6 @@ public class PaymentService {
         validateOwner(order, command.userId());
         validatePayable(order.getStatus());
         validateAmount(order.getTotalAmount(), command.amount());
-
-        String fingerprint = fingerprint(command);
-        ClaimResult claimResult = idempotencyStore.claim(
-                command.userId(),
-                command.idempotencyKey(),
-                fingerprint,
-                IDEMPOTENCY_TTL);
-
-//        Optional<PaymentResult> resolved = idempotencyClaimResolver.resolve(claimResult, PaymentResult.class);
-//        if (resolved.isPresent()) {
-//            return resolved.get();
-//        }
-
-
-        boolean idempotencySynchronizationRegistered = false;
 
         try {
             LocalDateTime now = LocalDateTime.now(clock);
@@ -97,7 +76,6 @@ public class PaymentService {
             } catch (PaymentFailedException ex) {
                 payment.fail(now);
                 paymentRepository.save(payment);
-                idempotencyStore.release(command.userId(), command.idempotencyKey());
                 throw ex;
             }
 
@@ -109,25 +87,11 @@ public class PaymentService {
                     payment.getPaymentNo(),
                     OrderStatus.PAID.name(),
                     PaymentStatus.APPROVED.name());
-            PaymentCompletedEvent event = new PaymentCompletedEvent(
-                    command.orderId(),
-                    payment.getId(),
-                    command.userId(),
-                    command.amount(),
-                    now);
-            idempotencySynchronizationRegistered =
-                    registerIdempotencySynchronization(command, fingerprint, result, event);
-            if (!idempotencySynchronizationRegistered) {
-                publishAndComplete(command, fingerprint, result, event);
-            }
 
             saveTransactions(payment.getId(), approval);
             order.markPaid();
             return result;
         } catch (RuntimeException ex) {
-            if (!idempotencySynchronizationRegistered && !(ex instanceof PaymentFailedException)) {
-                idempotencyStore.release(command.userId(), command.idempotencyKey());
-            }
             throw ex;
         }
     }
@@ -167,59 +131,7 @@ public class PaymentService {
                 TransactionStatus.SUCCESS));
     }
 
-    private boolean registerIdempotencySynchronization(
-            PaymentCommand command,
-            String fingerprint,
-            PaymentResult result,
-            PaymentCompletedEvent event
-    ) {
-        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-            return false;
-        }
-
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                publishAndComplete(command, fingerprint, result, event);
-            }
-
-            @Override
-            public void afterCompletion(int status) {
-                if (status == STATUS_ROLLED_BACK) {
-                    idempotencyStore.release(command.userId(), command.idempotencyKey());
-                }
-            }
-        });
-        return true;
-    }
-
-    private void publishAndComplete(
-            PaymentCommand command,
-            String fingerprint,
-            PaymentResult result,
-            PaymentCompletedEvent event
-    ) {
-        eventPublisher.publishPaymentCompleted(event);
-        idempotencyStore.complete(
-                command.userId(),
-                command.idempotencyKey(),
-                fingerprint,
-                serializeResult(result));
-    }
-
-    private String fingerprint(PaymentCommand command) {
-        return "orderId=" + command.orderId();
-    }
-
     private String generatePaymentNo(LocalDateTime now) {
         return "PAY-" + PAYMENT_NO_DATE_FORMATTER.format(now) + "-" + UUID.randomUUID().toString().replace("-", "");
-    }
-
-    private String serializeResult(PaymentResult result) {
-        return "{\"paymentId\":" + result.paymentId()
-                + ",\"paymentNo\":\"" + result.paymentNo()
-                + "\",\"orderStatus\":\"" + result.orderStatus()
-                + "\",\"paymentStatus\":\"" + result.paymentStatus()
-                + "\"}";
     }
 }
