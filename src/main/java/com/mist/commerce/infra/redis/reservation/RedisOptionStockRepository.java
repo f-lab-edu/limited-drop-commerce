@@ -1,4 +1,4 @@
-package com.mist.commerce.domain.reservation.infra;
+package com.mist.commerce.infra.redis.reservation;
 
 import com.mist.commerce.domain.reservation.repository.OptionStockStore;
 import java.util.List;

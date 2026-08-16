@@ -12,7 +12,7 @@ import com.mist.commerce.domain.order.repository.OrderRepository;
 import com.mist.commerce.domain.reservation.application.service.ExpiryRecoveryService;
 import com.mist.commerce.domain.reservation.entity.InventoryReservation;
 import com.mist.commerce.domain.reservation.entity.ReservationStatus;
-import com.mist.commerce.domain.reservation.infra.RedisOptionStockRepository;
+import com.mist.commerce.infra.redis.reservation.RedisOptionStockRepository;
 import com.mist.commerce.domain.reservation.repository.InventoryReservationRepository;
 import com.mist.commerce.support.MySqlContainerTestSupport;
 import java.math.BigDecimal;

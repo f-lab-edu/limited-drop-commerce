@@ -1,4 +1,4 @@
-package com.mist.commerce.domain.reservation.redis;
+package com.mist.commerce.infra.redis.reservation;
 
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.anyLong;

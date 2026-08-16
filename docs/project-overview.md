@@ -48,70 +48,80 @@
 
 
 ## 패키지
+
+### 배치 규칙
+
+port(인터페이스)는 그것을 필요로 하는 도메인에 두고, adapter(구현체)는 `infra/`에 둔다. 도메인이 인프라에 의존하지 않게 하기 위한 것이다.
+
+| 대상 | 위치 |
+|---|---|
+| port (인터페이스와 그 입출력 타입) | 해당 도메인 하위 (`domain/payment/gateway/`, `domain/reservation/repository/`) |
+| 여러 도메인이 공유하는 기술 adapter | 루트 `infra/` (Redis, Kafka) |
+| 특정 도메인 전용 외부 연동 | 해당 도메인 하위 `infra/` (`domain/payment/infra/toss/`) |
+
+`domain/payment/infra/toss/`는 Toss 연동이 결제에서만 쓰이기 때문에 둔 예외다. Redis와 Kafka는 여러 도메인이 공유하므로 루트 `infra/`에 모은다.
+
 ```aiignore
 com.mist.commerce
 ├── CommerceApplication.java
 │
-├── global/
+├── global/                       공통 웹/설정/예외 기반
 │   ├── config/
-│   ├── exception/
-│   ├── response/
 │   ├── entity/
+│   ├── exception/
 │   ├── filter/
 │   ├── interceptor/
-│   └── util/
+│   ├── response/
+│   ├── util/
+│   └── web/
 │
-├── common/
-│   
-│   
-│   
-│   
+├── common/                       도메인 간 공유 기능
+│   ├── idempotency/
+│   │   ├── exception/
+│   │   ├── model/
+│   │   ├── port/                 IdempotencyStore (port)
+│   │   └── web/                  IdempotencyInterceptor, RequestResolver
+│   └── json/
+│
+├── infra/                        공유 기술 adapter
+│   ├── kafka/
+│   │   ├── KafkaConfig.java
+│   │   └── KafkaPaymentEventPublisher.java
+│   └── redis/
+│       ├── RedisKeyExpirationConfig.java
+│       ├── RedisScriptLoader.java
+│       ├── idempotency/          IdempotencyStore 구현
+│       └── reservation/          OptionStockStore, ReservationExpiryStore 구현
 │
 └── domain/
-    ├── user/
-    │   ├── controller/
-    │   ├── service/
-    │   ├── repository/
-    │   ├── entity/
-    │   ├── dto/
-    │   └── exception/
-    │
     ├── reservation/
-    │   ├── controller/
-    │   ├── service/
-    │   ├── repository/
-    │   │   └── StockReservationStore.java
-    │   ├── entity/
+    │   ├── application/          service, listener, idempotency, support
     │   ├── dto/
+    │   ├── entity/
     │   ├── exception/
-    │   └── infra/
-    │       └── redis/
-    │           ├── RedisStockReservationStore.java
-    │           └── StockReservationLuaScript.java
+    │   ├── presentation/
+    │   ├── repository/           OptionStockStore, ReservationExpiryStore (port)
+    │   └── scheduler/
     │
     ├── order/
     │   ├── controller/
-    │   ├── service/
-    │   ├── repository/
-    │   │   └── OrderIdempotencyStore.java
-    │   ├── entity/
     │   ├── dto/
+    │   ├── entity/
     │   ├── exception/
-    │   └── infra/
-    │       └── redis/
-    │           └── RedisOrderIdempotencyStore.java
+    │   ├── repository/
+    │   └── service/
     │
     └── payment/
-        ├── controller/
-        ├── service/
-        ├── repository/
-        │   └── PaymentIdempotencyStore.java
-        ├── entity/
+        ├── application/          listener, idempotency, support
         ├── dto/
+        ├── entity/
         ├── exception/
-        └── infra/
-            ├── redis/
-            │   └── RedisPaymentIdempotencyStore.java
-            └── external/
-                └── PaymentGatewayClient.java
+        ├── gateway/              PaymentGateway, PaymentEventPublisher (port)
+        ├── infra/                결제 전용 외부 연동
+        │   └── toss/             TossPaymentClient (PaymentGateway 구현)
+        ├── presentation/
+        ├── repository/
+        └── service/
 ```
+
+`user`, `product`, `brand`, `event`, `company` 도메인은 `controller / service / repository / entity / dto / exception` 기본 구성을 따른다.

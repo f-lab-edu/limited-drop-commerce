@@ -25,7 +25,7 @@ import com.mist.commerce.domain.reservation.dto.ReserveCommand;
 import com.mist.commerce.domain.reservation.dto.ReserveResult;
 import com.mist.commerce.domain.reservation.entity.InventoryReservation;
 import com.mist.commerce.domain.reservation.entity.ReservationStatus;
-import com.mist.commerce.domain.reservation.infra.RedisOptionStockRepository;
+import com.mist.commerce.infra.redis.reservation.RedisOptionStockRepository;
 import com.mist.commerce.domain.reservation.repository.InventoryReservationRepository;
 import com.mist.commerce.global.exception.BusinessException;
 import com.mist.commerce.support.MySqlContainerTestSupport;

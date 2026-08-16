@@ -1,4 +1,4 @@
-package com.mist.commerce.infra.payment;
+package com.mist.commerce.domain.payment.infra;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

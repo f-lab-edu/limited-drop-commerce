@@ -1,4 +1,4 @@
-package com.mist.commerce.infra.payment;
+package com.mist.commerce.domain.payment.infra.toss;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -18,8 +18,6 @@ import com.mist.commerce.domain.payment.exception.PaymentExceptionMessage;
 import com.mist.commerce.domain.payment.exception.PaymentFailedException;
 import com.mist.commerce.domain.payment.gateway.PaymentApproval;
 import com.mist.commerce.domain.payment.gateway.PaymentApprovalCommand;
-import com.mist.commerce.infra.payment.toss.TossPaymentClient;
-import com.mist.commerce.infra.payment.toss.TossPaymentProperties;
 import jakarta.persistence.EntityManager;
 import java.io.IOException;
 import java.lang.reflect.Field;

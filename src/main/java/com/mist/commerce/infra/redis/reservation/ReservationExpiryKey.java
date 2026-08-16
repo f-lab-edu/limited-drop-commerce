@@ -1,4 +1,4 @@
-package com.mist.commerce.domain.reservation.infra;
+package com.mist.commerce.infra.redis.reservation;
 
 public record ReservationExpiryKey (
     Long orderId,

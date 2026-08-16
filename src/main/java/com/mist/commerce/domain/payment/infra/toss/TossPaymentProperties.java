@@ -1,4 +1,4 @@
-package com.mist.commerce.infra.payment.toss;
+package com.mist.commerce.domain.payment.infra.toss;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
