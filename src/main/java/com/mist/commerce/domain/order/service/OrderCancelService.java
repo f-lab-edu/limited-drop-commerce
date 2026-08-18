@@ -1,6 +1,9 @@
 package com.mist.commerce.domain.order.service;
 
+import com.mist.commerce.common.idempotency.exception.IdempotencyKeyReusedException;
+import com.mist.commerce.common.idempotency.exception.InProgressException;
 import com.mist.commerce.common.idempotency.model.ClaimResult;
+import com.mist.commerce.common.idempotency.model.ClaimStatus;
 import com.mist.commerce.common.idempotency.port.IdempotencyStore;
 import com.mist.commerce.domain.event.exception.EventItemOptionNotFoundException;
 import com.mist.commerce.domain.event.repository.EventItemOptionStockRepository;
@@ -58,10 +61,15 @@ public class OrderCancelService {
                 fingerprint,
                 IDEMPOTENCY_TTL);
 
-//        Optional<CancelResult> resolved = idempotencyClaimResolver.resolve(claimResult, CancelResult.class);
-//        if (resolved.isPresent()) {
-//            return  resolved.get();
-//        }
+        if (claimResult.status() == ClaimStatus.COMPLETED) {
+            return deserializeResult(claimResult.resultPayload());
+        }
+        if (claimResult.status() == ClaimStatus.MISMATCH) {
+            throw new IdempotencyKeyReusedException();
+        }
+        if (claimResult.status() == ClaimStatus.IN_PROGRESS) {
+            throw new InProgressException();
+        }
 
         CancelResult[] resultHolder = new CancelResult[1];
         boolean idempotencySynchronizationRegistered = false;
