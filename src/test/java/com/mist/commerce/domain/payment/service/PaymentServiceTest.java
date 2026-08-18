@@ -17,6 +17,7 @@ import com.mist.commerce.domain.order.exception.OrderCannotPayException;
 import com.mist.commerce.domain.order.exception.OrderForbiddenException;
 import com.mist.commerce.domain.order.exception.OrderNotFoundException;
 import com.mist.commerce.domain.order.repository.OrderRepository;
+import com.mist.commerce.domain.payment.application.listener.PaymentCompletedEvent;
 import com.mist.commerce.domain.payment.dto.PaymentCommand;
 import com.mist.commerce.domain.payment.dto.PaymentResult;
 import com.mist.commerce.domain.payment.entity.Payment;
@@ -47,6 +48,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
@@ -88,6 +90,9 @@ class PaymentServiceTest {
     @Mock
     private PaymentGateway paymentGateway;
 
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
+
     private PaymentService paymentService;
 
     @BeforeEach
@@ -108,6 +113,7 @@ class PaymentServiceTest {
                 paymentRepository,
                 paymentTransactionRepository,
                 paymentGateway,
+                eventPublisher,
                 CLOCK);
     }
 
@@ -149,6 +155,15 @@ class PaymentServiceTest {
         List<PaymentTransaction> transactions = transactionCaptor.getAllValues();
         assertRequestTransaction(transactions.get(0));
         assertApproveTransaction(transactions.get(1));
+
+        ArgumentCaptor<PaymentCompletedEvent> eventCaptor = ArgumentCaptor.forClass(PaymentCompletedEvent.class);
+        verify(eventPublisher).publishEvent(eventCaptor.capture());
+        PaymentCompletedEvent event = eventCaptor.getValue();
+        assertThat(event.orderId()).isEqualTo(ORDER_ID);
+        assertThat(event.paymentId()).isEqualTo(PAYMENT_ID);
+        assertThat(event.userId()).isEqualTo(USER_ID);
+        assertThat(event.amount()).isEqualByComparingTo(AMOUNT);
+        assertThat(event.occurredAt()).isEqualTo(NOW);
     }
 
     @Test
@@ -208,7 +223,8 @@ class PaymentServiceTest {
                     orderRepository,
                     paymentRepository,
                     paymentTransactionRepository,
-                    paymentGateway);
+                    paymentGateway,
+                    eventPublisher);
             setUp();
         }
     }
@@ -255,6 +271,7 @@ class PaymentServiceTest {
         assertThat(order.getStatus()).isEqualTo(OrderStatus.PENDING_PAYMENT);
         verify(order, never()).markPaid();
         verify(paymentTransactionRepository, never()).save(any());
+        verify(eventPublisher, never()).publishEvent(any());
     }
 
     private void assertRequestTransaction(PaymentTransaction transaction) {
@@ -276,6 +293,7 @@ class PaymentServiceTest {
         verify(paymentRepository, never()).save(any());
         verify(paymentTransactionRepository, never()).save(any());
         verify(paymentGateway, never()).approve(any());
+        verify(eventPublisher, never()).publishEvent(any());
     }
 
     private PaymentCommand command() {

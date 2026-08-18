@@ -6,6 +6,7 @@ import com.mist.commerce.domain.order.exception.OrderCannotPayException;
 import com.mist.commerce.domain.order.exception.OrderForbiddenException;
 import com.mist.commerce.domain.order.exception.OrderNotFoundException;
 import com.mist.commerce.domain.order.repository.OrderRepository;
+import com.mist.commerce.domain.payment.application.listener.PaymentCompletedEvent;
 import com.mist.commerce.domain.payment.dto.PaymentCommand;
 import com.mist.commerce.domain.payment.dto.PaymentResult;
 import com.mist.commerce.domain.payment.entity.Payment;
@@ -22,11 +23,11 @@ import com.mist.commerce.domain.payment.repository.PaymentRepository;
 import com.mist.commerce.domain.payment.repository.PaymentTransactionRepository;
 import java.math.BigDecimal;
 import java.time.Clock;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,13 +35,13 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class PaymentService {
 
-    private static final Duration IDEMPOTENCY_TTL = Duration.ofMinutes(30);
     private static final DateTimeFormatter PAYMENT_NO_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
 
     private final OrderRepository orderRepository;
     private final PaymentRepository paymentRepository;
     private final PaymentTransactionRepository paymentTransactionRepository;
     private final PaymentGateway paymentGateway;
+    private final ApplicationEventPublisher eventPublisher;
 
     private final Clock clock;
 
@@ -90,6 +91,12 @@ public class PaymentService {
 
             saveTransactions(payment.getId(), approval);
             order.markPaid();
+            eventPublisher.publishEvent(new PaymentCompletedEvent(
+                    command.orderId(),
+                    payment.getId(),
+                    command.userId(),
+                    command.amount(),
+                    now));
             return result;
         } catch (RuntimeException ex) {
             throw ex;
