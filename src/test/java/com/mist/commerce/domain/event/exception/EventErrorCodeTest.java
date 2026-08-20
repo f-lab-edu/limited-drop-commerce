@@ -15,7 +15,7 @@ class EventErrorCodeTest {
     @Test
     @DisplayName("DROP_EVENT_NOT_FOUND는 404 NOT_FOUND를 노출한다")
     void dropEventNotFound_exposesCodeAndHttpStatus() {
-        assertErrorCode(new DropEventNotFoundException(), "DROP_EVENT_NOT_FOUND", HttpStatus.NOT_FOUND);
+        assertErrorCode(new EventNotFoundException(), "DROP_EVENT_NOT_FOUND", HttpStatus.NOT_FOUND);
     }
 
     @Test

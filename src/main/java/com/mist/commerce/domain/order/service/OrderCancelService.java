@@ -1,5 +1,10 @@
 package com.mist.commerce.domain.order.service;
 
+import com.mist.commerce.common.idempotency.exception.IdempotencyKeyReusedException;
+import com.mist.commerce.common.idempotency.exception.InProgressException;
+import com.mist.commerce.common.idempotency.model.ClaimResult;
+import com.mist.commerce.common.idempotency.model.ClaimStatus;
+import com.mist.commerce.common.idempotency.port.IdempotencyStore;
 import com.mist.commerce.domain.event.exception.EventItemOptionNotFoundException;
 import com.mist.commerce.domain.event.repository.EventItemOptionStockRepository;
 import com.mist.commerce.domain.order.entity.Order;
@@ -12,14 +17,9 @@ import com.mist.commerce.domain.order.exception.OrderNotFoundException;
 import com.mist.commerce.domain.order.repository.OrderRepository;
 import com.mist.commerce.domain.reservation.entity.InventoryReservation;
 import com.mist.commerce.domain.reservation.entity.ReservationStatus;
-import com.mist.commerce.domain.reservation.exception.IdempotencyKeyReusedException;
-import com.mist.commerce.domain.reservation.exception.ReservationInProgressException;
-import com.mist.commerce.domain.reservation.redis.ClaimResult;
-import com.mist.commerce.domain.reservation.redis.ClaimStatus;
-import com.mist.commerce.domain.reservation.redis.IdempotencyRedisRepository;
-import com.mist.commerce.domain.reservation.redis.OptionStockRedisRepository;
-import com.mist.commerce.domain.reservation.redis.ReservationExpiryRedisRepository;
 import com.mist.commerce.domain.reservation.repository.InventoryReservationRepository;
+import com.mist.commerce.domain.reservation.repository.OptionStockStore;
+import com.mist.commerce.domain.reservation.repository.ReservationExpiryStore;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -40,24 +40,27 @@ public class OrderCancelService {
     private final OrderRepository orderRepository;
     private final InventoryReservationRepository inventoryReservationRepository;
     private final EventItemOptionStockRepository eventItemOptionStockRepository;
-    private final OptionStockRedisRepository optionStockRedisRepository;
-    private final ReservationExpiryRedisRepository reservationExpiryRedisRepository;
-    private final IdempotencyRedisRepository idempotencyRedisRepository;
+    private final OptionStockStore optionStockStore;
+    private final ReservationExpiryStore reservationExpiryStore;
+    private final IdempotencyStore idempotencyStore;
+
     private final Clock clock;
 
     @Transactional
     public CancelResult cancel(CancelCommand command) {
         Order order = orderRepository.findById(command.orderId())
                 .orElseThrow(OrderNotFoundException::new);
+
         validateOwner(order, command.userId());
         validateCancellable(order.getStatus());
 
         String fingerprint = fingerprint(command);
-        ClaimResult claimResult = idempotencyRedisRepository.claim(
+        ClaimResult claimResult = idempotencyStore.claim(
                 command.userId(),
                 command.idempotencyKey(),
                 fingerprint,
                 IDEMPOTENCY_TTL);
+
         if (claimResult.status() == ClaimStatus.COMPLETED) {
             return deserializeResult(claimResult.resultPayload());
         }
@@ -65,7 +68,7 @@ public class OrderCancelService {
             throw new IdempotencyKeyReusedException();
         }
         if (claimResult.status() == ClaimStatus.IN_PROGRESS) {
-            throw new ReservationInProgressException();
+            throw new InProgressException();
         }
 
         CancelResult[] resultHolder = new CancelResult[1];
@@ -88,7 +91,7 @@ public class OrderCancelService {
             idempotencySynchronizationRegistered =
                     registerIdempotencySynchronization(command, fingerprint, resultHolder);
             if (!idempotencySynchronizationRegistered) {
-                idempotencyRedisRepository.complete(
+                idempotencyStore.complete(
                         command.userId(),
                         command.idempotencyKey(),
                         fingerprint,
@@ -97,7 +100,7 @@ public class OrderCancelService {
             return result;
         } catch (RuntimeException ex) {
             if (!idempotencySynchronizationRegistered) {
-                idempotencyRedisRepository.release(command.userId(), command.idempotencyKey());
+                idempotencyStore.release(command.userId(), command.idempotencyKey());
             }
             throw ex;
         }
@@ -162,7 +165,7 @@ public class OrderCancelService {
             public void afterCommit() {
                 CancelResult result = resultHolder[0];
                 if (result != null) {
-                    idempotencyRedisRepository.complete(
+                    idempotencyStore.complete(
                             command.userId(),
                             command.idempotencyKey(),
                             fingerprint,
@@ -173,7 +176,7 @@ public class OrderCancelService {
             @Override
             public void afterCompletion(int status) {
                 if (status == STATUS_ROLLED_BACK) {
-                    idempotencyRedisRepository.release(command.userId(), command.idempotencyKey());
+                    idempotencyStore.release(command.userId(), command.idempotencyKey());
                 }
             }
         });
@@ -196,9 +199,9 @@ public class OrderCancelService {
 
     private void applyRedisRestore(Long orderId, List<StockRestore> restores) {
         for (StockRestore restore : restores) {
-            optionStockRedisRepository.increase(restore.optionStockId(), restore.quantity());
+            optionStockStore.increase(restore.optionStockId(), restore.quantity());
         }
-        reservationExpiryRedisRepository.clearExpiry(orderId);
+        reservationExpiryStore.clearExpiry(orderId);
     }
 
     private String fingerprint(CancelCommand command) {

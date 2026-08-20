@@ -16,12 +16,9 @@ import com.mist.commerce.domain.product.dto.CreateProductResponse;
 import com.mist.commerce.domain.product.exception.ProductOptionGroupNameDuplicatedException;
 import com.mist.commerce.domain.product.exception.ProductOptionValueDuplicatedException;
 import com.mist.commerce.domain.product.service.ProductService;
-import com.mist.commerce.domain.user.service.CustomOAuth2UserService;
-import com.mist.commerce.domain.user.service.TokenService;
 import com.mist.commerce.global.config.ClockConfig;
-import com.mist.commerce.global.config.OAuth2LoginFailureHandler;
-import com.mist.commerce.global.config.OAuth2LoginSuccessHandler;
 import com.mist.commerce.global.config.SecurityConfig;
+import com.mist.commerce.support.ControllerTestSupport;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -29,32 +26,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(ProductController.class)
 @Import({SecurityConfig.class, ClockConfig.class})
-class ProductControllerTest {
+class ProductControllerTest extends ControllerTestSupport {
 
     @Autowired
     private MockMvc mockMvc;
 
     @MockitoBean
     private ProductService productService;
-
-    @MockitoBean
-    private TokenService tokenService;
-
-    @MockitoBean
-    private CustomOAuth2UserService customOAuth2UserService;
-
-    @MockitoBean
-    private OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
-
-    @MockitoBean
-    private OAuth2LoginFailureHandler oAuth2LoginFailureHandler;
 
     @Test
     @DisplayName("COMPANY가 유효한 본문으로 상품을 등록하면 생성 응답을 반환한다")
@@ -63,7 +46,7 @@ class ProductControllerTest {
                 .willReturn(new CreateProductResponse(100L, List.of()));
 
         mockMvc.perform(post("/api/v1/products")
-                        .with(authentication(authenticatedUser("ROLE_COMPANY")))
+                        .with(authentication(authenticatedUser(10L, "ROLE_COMPANY")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -92,7 +75,7 @@ class ProductControllerTest {
                 .willReturn(new CreateProductResponse(100L, List.of(1000L, 1001L)));
 
         mockMvc.perform(post("/api/v1/products")
-                        .with(authentication(authenticatedUser("ROLE_COMPANY")))
+                        .with(authentication(authenticatedUser(10L, "ROLE_COMPANY")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(validBodyWithOptions()))
                 .andExpect(status().isCreated())
@@ -112,7 +95,7 @@ class ProductControllerTest {
     @DisplayName("옵션 그룹명이 공백이면 검증 오류를 반환한다")
     void createProduct_whenOptionGroupNameIsBlank_returnsValidationError() throws Exception {
         mockMvc.perform(post("/api/v1/products")
-                        .with(authentication(authenticatedUser("ROLE_COMPANY")))
+                        .with(authentication(authenticatedUser(10L, "ROLE_COMPANY")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -148,7 +131,7 @@ class ProductControllerTest {
     @DisplayName("옵션 그룹 노출 순서가 음수이면 검증 오류를 반환한다")
     void createProduct_whenOptionGroupDisplayOrderIsNegative_returnsValidationError() throws Exception {
         mockMvc.perform(post("/api/v1/products")
-                        .with(authentication(authenticatedUser("ROLE_COMPANY")))
+                        .with(authentication(authenticatedUser(10L, "ROLE_COMPANY")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -184,7 +167,7 @@ class ProductControllerTest {
     @DisplayName("옵션 값이 공백이면 검증 오류를 반환한다")
     void createProduct_whenOptionValueIsBlank_returnsValidationError() throws Exception {
         mockMvc.perform(post("/api/v1/products")
-                        .with(authentication(authenticatedUser("ROLE_COMPANY")))
+                        .with(authentication(authenticatedUser(10L, "ROLE_COMPANY")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -220,7 +203,7 @@ class ProductControllerTest {
     @DisplayName("옵션 값 목록이 비어 있으면 검증 오류를 반환한다")
     void createProduct_whenOptionValuesAreEmpty_returnsValidationError() throws Exception {
         mockMvc.perform(post("/api/v1/products")
-                        .with(authentication(authenticatedUser("ROLE_COMPANY")))
+                        .with(authentication(authenticatedUser(10L, "ROLE_COMPANY")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -257,7 +240,7 @@ class ProductControllerTest {
                 .willThrow(new ProductOptionGroupNameDuplicatedException("색상"));
 
         mockMvc.perform(post("/api/v1/products")
-                        .with(authentication(authenticatedUser("ROLE_COMPANY")))
+                        .with(authentication(authenticatedUser(10L, "ROLE_COMPANY")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(validBodyWithOptions()))
                 .andExpect(status().isConflict())
@@ -278,7 +261,7 @@ class ProductControllerTest {
                 .willThrow(new ProductOptionValueDuplicatedException("Black"));
 
         mockMvc.perform(post("/api/v1/products")
-                        .with(authentication(authenticatedUser("ROLE_COMPANY")))
+                        .with(authentication(authenticatedUser(10L, "ROLE_COMPANY")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(validBodyWithOptions()))
                 .andExpect(status().isConflict())
@@ -312,7 +295,7 @@ class ProductControllerTest {
     @DisplayName("COMPANY 권한이 없는 사용자가 상품 등록을 요청하면 접근 거부를 반환한다")
     void createProduct_withoutCompanyRole_returnsAccessDenied() throws Exception {
         mockMvc.perform(post("/api/v1/products")
-                        .with(authentication(authenticatedUser("ROLE_USER")))
+                        .with(authentication(authenticatedUser(10L, "ROLE_USER")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(validDraftBody()))
                 .andExpect(status().isForbidden())
@@ -329,7 +312,7 @@ class ProductControllerTest {
     @DisplayName("상품명이 누락되면 검증 오류를 반환한다")
     void createProduct_whenNameMissing_returnsValidationError() throws Exception {
         mockMvc.perform(post("/api/v1/products")
-                        .with(authentication(authenticatedUser("ROLE_COMPANY")))
+                        .with(authentication(authenticatedUser(10L, "ROLE_COMPANY")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -354,7 +337,7 @@ class ProductControllerTest {
     @DisplayName("가격이 음수이면 검증 오류를 반환한다")
     void createProduct_whenPriceIsNegative_returnsValidationError() throws Exception {
         mockMvc.perform(post("/api/v1/products")
-                        .with(authentication(authenticatedUser("ROLE_COMPANY")))
+                        .with(authentication(authenticatedUser(10L, "ROLE_COMPANY")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -380,7 +363,7 @@ class ProductControllerTest {
     @DisplayName("알 수 없는 상품 상태 문자열이면 검증 오류를 반환한다")
     void createProduct_whenStatusIsUnknown_returnsValidationError() throws Exception {
         mockMvc.perform(post("/api/v1/products")
-                        .with(authentication(authenticatedUser("ROLE_COMPANY")))
+                        .with(authentication(authenticatedUser(10L, "ROLE_COMPANY")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -409,7 +392,7 @@ class ProductControllerTest {
                 .willThrow(new BrandNotFoundException(999_999L));
 
         mockMvc.perform(post("/api/v1/products")
-                        .with(authentication(authenticatedUser("ROLE_COMPANY")))
+                        .with(authentication(authenticatedUser(10L, "ROLE_COMPANY")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -437,7 +420,7 @@ class ProductControllerTest {
                 .willReturn(new CreateProductResponse(100L, List.of()));
 
         mockMvc.perform(post("/api/v1/products")
-                        .with(authentication(authenticatedUser("ROLE_COMPANY")))
+                        .with(authentication(authenticatedUser(10L, "ROLE_COMPANY")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -455,14 +438,6 @@ class ProductControllerTest {
                 .andExpect(jsonPath("$.errors").doesNotExist())
                 .andExpect(jsonPath("$.timestamp").exists());
         verify(productService).createProduct(eq(10L), any(CreateProductRequest.class));
-    }
-
-    private UsernamePasswordAuthenticationToken authenticatedUser(String authority) {
-        return new UsernamePasswordAuthenticationToken(
-                10L,
-                null,
-                List.of(new SimpleGrantedAuthority(authority))
-        );
     }
 
     private String validDraftBody() {

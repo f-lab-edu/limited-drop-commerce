@@ -1,5 +1,6 @@
 package com.mist.commerce.domain.event.entity;
 
+import com.mist.commerce.domain.event.exception.EventItemOptionNotFoundException;
 import com.mist.commerce.domain.reservation.exception.InvalidReservationQuantityException;
 import com.mist.commerce.domain.reservation.exception.PurchaseLimitExceededException;
 import com.mist.commerce.global.entity.BaseTimeEntity;
@@ -95,6 +96,13 @@ public class EventItem extends BaseTimeEntity {
         if (alreadyPurchasedQuantity + requestedQuantity > maxPurchasePerCustomer) {
             throw new PurchaseLimitExceededException();
         }
+    }
+
+    public EventItemOptionStock getOptionStock(Long eventItemOptionStockId) {
+        return optionStocks.stream()
+                .filter(stock -> Objects.equals(stock.getId(), eventItemOptionStockId))
+                .findFirst()
+                .orElseThrow(EventItemOptionNotFoundException::new);
     }
 
     private static void validate(BigDecimal price, int quantity, int maxPurchasePerCustomer) {

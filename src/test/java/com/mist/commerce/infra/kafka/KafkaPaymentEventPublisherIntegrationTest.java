@@ -2,7 +2,7 @@ package com.mist.commerce.infra.kafka;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.mist.commerce.domain.payment.event.PaymentCompletedEvent;
+import com.mist.commerce.domain.payment.application.listener.PaymentCompletedEvent;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -76,7 +76,6 @@ class KafkaPaymentEventPublisherIntegrationTest {
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafka.getBootstrapServers());
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
-        props.put(JsonSerializer.ADD_TYPE_INFO_HEADERS, false);
         return new KafkaTemplate<>(new DefaultKafkaProducerFactory<>(props));
     }
 

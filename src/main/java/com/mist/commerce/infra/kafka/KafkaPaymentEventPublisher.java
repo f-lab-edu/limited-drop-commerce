@@ -1,7 +1,7 @@
 package com.mist.commerce.infra.kafka;
 
-import com.mist.commerce.domain.payment.event.PaymentCompletedEvent;
-import com.mist.commerce.domain.payment.event.PaymentEventPublisher;
+import com.mist.commerce.domain.payment.application.listener.PaymentCompletedEvent;
+import com.mist.commerce.domain.payment.gateway.PaymentEventPublisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;

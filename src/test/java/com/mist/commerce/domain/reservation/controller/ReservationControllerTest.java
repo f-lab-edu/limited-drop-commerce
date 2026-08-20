@@ -12,20 +12,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.mist.commerce.domain.event.exception.StockExhaustedException;
+import com.mist.commerce.domain.reservation.application.service.ReservationService;
 import com.mist.commerce.domain.reservation.dto.ReservationRequest;
-import com.mist.commerce.domain.reservation.service.ReservationService;
-import com.mist.commerce.domain.reservation.service.ReserveCommand;
-import com.mist.commerce.domain.reservation.service.ReserveResult;
-import com.mist.commerce.domain.user.service.CustomOAuth2UserService;
-import com.mist.commerce.domain.user.service.TokenService;
-import com.mist.commerce.global.config.OAuth2LoginFailureHandler;
-import com.mist.commerce.global.config.OAuth2LoginSuccessHandler;
+import com.mist.commerce.domain.reservation.dto.ReserveCommand;
+import com.mist.commerce.domain.reservation.dto.ReserveResult;
+import com.mist.commerce.domain.reservation.presentation.ReservationController;
 import com.mist.commerce.global.config.SecurityConfig;
+import com.mist.commerce.support.ControllerTestSupport;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -36,15 +33,13 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.MediaType;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
 
 @WebMvcTest(ReservationController.class)
 @Import({SecurityConfig.class, ReservationControllerTest.FixedClockConfig.class})
-class ReservationControllerTest {
+class ReservationControllerTest extends ControllerTestSupport {
 
     private static final Long USER_ID = 10L;
     private static final LocalDateTime EXPIRES_AT = LocalDateTime.of(2026, 6, 19, 13, 30);
@@ -59,26 +54,14 @@ class ReservationControllerTest {
     @MockitoBean
     private ReservationService reservationService;
 
-    @MockitoBean
-    private TokenService tokenService;
-
-    @MockitoBean
-    private CustomOAuth2UserService customOAuth2UserService;
-
-    @MockitoBean
-    private OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
-
-    @MockitoBean
-    private OAuth2LoginFailureHandler oAuth2LoginFailureHandler;
-
     @Test
     @DisplayName("TC-RES-CTRL-IDEM-001: Idempotency-Key 헤더 포함 정상 요청은 command에 idempotencyKey를 싣는다")
     void reserve_withAuthenticatedUserAndValidBody_returns201AndSuccessEnvelope() throws Exception {
         given(reservationService.reserve(any(ReserveCommand.class)))
                 .willReturn(new ReserveResult(1000L, EXPIRES_AT, "PENDING_PAYMENT"));
 
-        mockMvc.perform(post("/api/v1/reservations")
-                        .with(authentication(authenticatedUser()))
+        mockMvc.perform(post("/api/v1/reservations/reserve")
+                        .with(authentication(authenticatedUser(USER_ID, "ROLE_USER")))
                         .header("Idempotency-Key", IDEMPOTENCY_KEY)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest())))
@@ -106,8 +89,8 @@ class ReservationControllerTest {
     @Test
     @DisplayName("TC-RES-CTRL-IDEM-002: Idempotency-Key 헤더가 없으면 400 VALIDATION_ERROR를 반환하고 서비스를 호출하지 않는다")
     void reserve_withoutIdempotencyKeyHeader_returns400ValidationErrorAndDoesNotCallService() throws Exception {
-        mockMvc.perform(post("/api/v1/reservations")
-                        .with(authentication(authenticatedUser()))
+        mockMvc.perform(post("/api/v1/reservations/reserve")
+                        .with(authentication(authenticatedUser(USER_ID, "ROLE_USER")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest())))
                 .andExpect(status().isBadRequest())
@@ -121,8 +104,8 @@ class ReservationControllerTest {
     @Test
     @DisplayName("quantity가 0이면 400 VALIDATION_ERROR를 반환하고 서비스를 호출하지 않는다")
     void reserve_withZeroQuantity_returns400ValidationError() throws Exception {
-        mockMvc.perform(post("/api/v1/reservations")
-                        .with(authentication(authenticatedUser()))
+        mockMvc.perform(post("/api/v1/reservations/reserve")
+                        .with(authentication(authenticatedUser(USER_ID, "ROLE_USER")))
                         .header("Idempotency-Key", IDEMPOTENCY_KEY)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -144,8 +127,8 @@ class ReservationControllerTest {
     @Test
     @DisplayName("필수 필드가 null이면 400 VALIDATION_ERROR를 반환하고 서비스를 호출하지 않는다")
     void reserve_withNullRequiredField_returns400ValidationError() throws Exception {
-        mockMvc.perform(post("/api/v1/reservations")
-                        .with(authentication(authenticatedUser()))
+        mockMvc.perform(post("/api/v1/reservations/reserve")
+                        .with(authentication(authenticatedUser(USER_ID, "ROLE_USER")))
                         .header("Idempotency-Key", IDEMPOTENCY_KEY)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -170,8 +153,8 @@ class ReservationControllerTest {
         given(reservationService.reserve(any(ReserveCommand.class)))
                 .willThrow(new StockExhaustedException());
 
-        mockMvc.perform(post("/api/v1/reservations")
-                        .with(authentication(authenticatedUser()))
+        mockMvc.perform(post("/api/v1/reservations/reserve")
+                        .with(authentication(authenticatedUser(USER_ID, "ROLE_USER")))
                         .header("Idempotency-Key", IDEMPOTENCY_KEY)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest())))
@@ -185,7 +168,7 @@ class ReservationControllerTest {
     @Test
     @DisplayName("인증 없이 예약을 요청하면 401을 반환하고 서비스를 호출하지 않는다")
     void reserve_withoutAuthentication_returns401AndDoesNotCallService() throws Exception {
-        mockMvc.perform(post("/api/v1/reservations")
+        mockMvc.perform(post("/api/v1/reservations/reserve")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest())))
                 .andExpect(status().isUnauthorized())
@@ -197,14 +180,6 @@ class ReservationControllerTest {
 
     private ReservationRequest validRequest() {
         return new ReservationRequest(20L, 30L, 40L, 2);
-    }
-
-    private UsernamePasswordAuthenticationToken authenticatedUser() {
-        return new UsernamePasswordAuthenticationToken(
-                USER_ID,
-                null,
-                List.of(new SimpleGrantedAuthority("ROLE_USER"))
-        );
     }
 
     @TestConfiguration

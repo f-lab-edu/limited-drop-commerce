@@ -2,8 +2,8 @@ package com.mist.commerce.infra.kafka;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.mist.commerce.domain.payment.event.PaymentCompletedEvent;
-import com.mist.commerce.domain.payment.event.PaymentEventPublisher;
+import com.mist.commerce.domain.payment.application.listener.PaymentCompletedEvent;
+import com.mist.commerce.domain.payment.gateway.PaymentEventPublisher;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.Arrays;

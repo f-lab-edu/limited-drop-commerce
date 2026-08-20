@@ -2,7 +2,7 @@ package com.mist.commerce.domain.reservation.scheduler;
 
 import com.mist.commerce.domain.order.entity.OrderStatus;
 import com.mist.commerce.domain.order.repository.OrderRepository;
-import com.mist.commerce.domain.reservation.service.ExpiryRecoveryService;
+import com.mist.commerce.domain.reservation.application.service.ExpiryRecoveryService;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;

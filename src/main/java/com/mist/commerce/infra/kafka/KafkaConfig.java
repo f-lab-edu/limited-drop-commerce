@@ -1,6 +1,6 @@
 package com.mist.commerce.infra.kafka;
 
-import com.mist.commerce.domain.payment.event.PaymentCompletedEvent;
+import com.mist.commerce.domain.payment.application.listener.PaymentCompletedEvent;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.kafka.clients.producer.ProducerConfig;
