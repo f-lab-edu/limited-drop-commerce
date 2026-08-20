@@ -11,7 +11,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.mist.commerce.common.idempotency.port.IdempotencyStore;
 import com.mist.commerce.domain.order.exception.OrderCannotPayException;
 import com.mist.commerce.domain.order.exception.OrderForbiddenException;
 import com.mist.commerce.domain.order.exception.OrderNotFoundException;
@@ -20,15 +19,11 @@ import com.mist.commerce.domain.payment.exception.PaymentFailedException;
 import com.mist.commerce.domain.payment.dto.PaymentCommand;
 import com.mist.commerce.domain.payment.dto.PaymentResult;
 import com.mist.commerce.domain.payment.service.PaymentService;
-import com.mist.commerce.domain.user.service.CustomOAuth2UserService;
-import com.mist.commerce.domain.user.service.TokenService;
-import com.mist.commerce.global.config.OAuth2LoginFailureHandler;
-import com.mist.commerce.global.config.OAuth2LoginSuccessHandler;
 import com.mist.commerce.global.config.SecurityConfig;
+import com.mist.commerce.support.ControllerTestSupport;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
-import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -39,15 +34,13 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.MediaType;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.RequestBuilder;
 
 @WebMvcTest(PaymentController.class)
 @Import({SecurityConfig.class, PaymentControllerTest.FixedClockConfig.class})
-class PaymentControllerTest {
+class PaymentControllerTest extends ControllerTestSupport {
 
     private static final Long USER_ID = 10L;
     private static final Long ORDER_ID = 100L;
@@ -62,21 +55,6 @@ class PaymentControllerTest {
 
     @MockitoBean
     private PaymentService paymentService;
-
-    @MockitoBean
-    private TokenService tokenService;
-
-    @MockitoBean
-    private CustomOAuth2UserService customOAuth2UserService;
-
-    @MockitoBean
-    private OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
-
-    @MockitoBean
-    private OAuth2LoginFailureHandler oAuth2LoginFailureHandler;
-
-    @MockitoBean
-    private IdempotencyStore idempotencyStore;
 
     @Test
     @DisplayName("TC-PAY-CTL-001: 인증된 사용자가 필수 헤더와 유효 body로 결제 요청하면 200과 결제 완료 응답을 반환한다")
@@ -125,7 +103,7 @@ class PaymentControllerTest {
     @DisplayName("TC-PAY-CTL-003: Idempotency-Key 헤더가 없으면 400 VALIDATION_ERROR를 반환하고 서비스를 호출하지 않는다")
     void pay_withoutIdempotencyKeyHeader_returns400AndDoesNotCallService() throws Exception {
         mockMvc.perform(post("/api/v1/payments/pay")
-                        .with(authentication(authenticatedUser()))
+                        .with(authentication(authenticatedUser(USER_ID, "ROLE_USER")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(validRequestBody()))
                 .andExpect(status().isBadRequest())
@@ -281,7 +259,7 @@ class PaymentControllerTest {
 
     private RequestBuilder authenticatedPaymentRequest(String body) {
         return post("/api/v1/payments/pay")
-                .with(authentication(authenticatedUser()))
+                .with(authentication(authenticatedUser(USER_ID, "ROLE_USER")))
                 .header("Idempotency-Key", IDEMPOTENCY_KEY)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body);
@@ -296,14 +274,6 @@ class PaymentControllerTest {
                   "amount": 150000.00
                 }
                 """;
-    }
-
-    private UsernamePasswordAuthenticationToken authenticatedUser() {
-        return new UsernamePasswordAuthenticationToken(
-                USER_ID,
-                null,
-                List.of(new SimpleGrantedAuthority("ROLE_USER"))
-        );
     }
 
     @TestConfiguration

@@ -3,6 +3,7 @@ package com.mist.commerce.domain.user.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
+import com.mist.commerce.support.RedisContainerTestSupport;
 import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -13,32 +14,15 @@ import org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfigurat
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.utility.DockerImageName;
 
 @SpringBootTest
-@Testcontainers
-class RefreshTokenRedisRepositoryTest {
-
-    @Container
-    static GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
-            .withExposedPorts(6379);
+class RefreshTokenRedisRepositoryTest extends RedisContainerTestSupport {
 
     @Autowired
     private RefreshTokenRedisRepository redisRepository;
 
     @Autowired
     private StringRedisTemplate redisTemplate;
-
-    @DynamicPropertySource
-    static void redisProps(DynamicPropertyRegistry registry) {
-        registry.add("spring.data.redis.host", redis::getHost);
-        registry.add("spring.data.redis.port", () -> redis.getMappedPort(6379));
-    }
 
     @AfterEach
     void cleanup() {

@@ -28,7 +28,7 @@ import com.mist.commerce.domain.reservation.entity.ReservationStatus;
 import com.mist.commerce.infra.redis.reservation.RedisOptionStockRepository;
 import com.mist.commerce.domain.reservation.repository.InventoryReservationRepository;
 import com.mist.commerce.global.exception.BusinessException;
-import com.mist.commerce.support.MySqlContainerTestSupport;
+import com.mist.commerce.support.MySqlRedisContainerTestSupport;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Duration;
@@ -47,20 +47,13 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.utility.DockerImageName;
 
 @SpringBootTest(classes = {CommerceApplication.class, ReservationServiceIntegrationTest.FixedClockConfig.class})
-@Testcontainers
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
-class ReservationServiceIntegrationTest extends MySqlContainerTestSupport {
+class ReservationServiceIntegrationTest extends MySqlRedisContainerTestSupport {
 
     private static final Long USER_ID = 10L;
     private static final String IDEMPOTENCY_KEY = "reservation-idem-key-001";
@@ -69,10 +62,6 @@ class ReservationServiceIntegrationTest extends MySqlContainerTestSupport {
             Instant.parse("2026-06-17T03:00:00Z"),
             ZoneId.of("Asia/Seoul"));
     private static final LocalDateTime NOW = LocalDateTime.now(FIXED_CLOCK);
-
-    @Container
-    static GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
-            .withExposedPorts(6379);
 
     @Autowired
     private ReservationService reservationService;
@@ -103,12 +92,6 @@ class ReservationServiceIntegrationTest extends MySqlContainerTestSupport {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
-
-    @DynamicPropertySource
-    static void redisProps(DynamicPropertyRegistry registry) {
-        registry.add("spring.data.redis.host", redis::getHost);
-        registry.add("spring.data.redis.port", () -> redis.getMappedPort(6379));
-    }
 
     @BeforeEach
     void setUp() {

@@ -2,17 +2,10 @@ package com.mist.commerce;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
+import com.mist.commerce.support.MySqlContainerTestSupport;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.containers.MySQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
-@Testcontainers
-class ContainerTest {
-
-    @Container
-    static MySQLContainer<?> mysql =
-            new MySQLContainer<>("mysql:8.0");
+class ContainerTest extends MySqlContainerTestSupport {
 
     @Test
     void running() {

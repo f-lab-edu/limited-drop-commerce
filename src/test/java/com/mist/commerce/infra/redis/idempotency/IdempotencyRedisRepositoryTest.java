@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.mist.commerce.common.idempotency.model.ClaimResult;
 import com.mist.commerce.common.idempotency.model.ClaimStatus;
 import com.mist.commerce.infra.redis.RedisScriptLoader;
+import com.mist.commerce.support.RedisContainerTestSupport;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,16 +26,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.utility.DockerImageName;
 
 @SpringBootTest
-@Testcontainers
-class IdempotencyRedisRepositoryTest {
+class IdempotencyRedisRepositoryTest extends RedisContainerTestSupport {
 
     private static final Long USER_ID = 10L;
     private static final String IDEMPOTENCY_KEY = "idem-key-001";
@@ -43,21 +37,11 @@ class IdempotencyRedisRepositoryTest {
     private static final String RESULT_PAYLOAD = "{\"orderId\":100,\"status\":\"PENDING_PAYMENT\"}";
     private static final Duration TTL = Duration.ofMinutes(30);
 
-    @Container
-    static GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
-            .withExposedPorts(6379);
-
     @Autowired
     private IdempotencyRedisRepository idempotencyRedisRepository;
 
     @Autowired
     private StringRedisTemplate redisTemplate;
-
-    @DynamicPropertySource
-    static void redisProps(DynamicPropertyRegistry registry) {
-        registry.add("spring.data.redis.host", redis::getHost);
-        registry.add("spring.data.redis.port", () -> redis.getMappedPort(6379));
-    }
 
     @AfterEach
     void cleanup() {

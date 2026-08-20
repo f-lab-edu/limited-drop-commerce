@@ -3,6 +3,7 @@ package com.mist.commerce.infra.redis.reservation;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.mist.commerce.infra.redis.RedisScriptLoader;
+import com.mist.commerce.support.RedisContainerTestSupport;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -22,34 +23,17 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.utility.DockerImageName;
 
 @SpringBootTest
-@Testcontainers
-class OptionStockRedisRepositoryTest {
+class OptionStockRedisRepositoryTest extends RedisContainerTestSupport {
 
     private static final Long OPTION_STOCK_ID = 40L;
-
-    @Container
-    static GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
-            .withExposedPorts(6379);
 
     @Autowired
     private RedisOptionStockRepository optionStockRedisRepository;
 
     @Autowired
     private StringRedisTemplate redisTemplate;
-
-    @DynamicPropertySource
-    static void redisProps(DynamicPropertyRegistry registry) {
-        registry.add("spring.data.redis.host", redis::getHost);
-        registry.add("spring.data.redis.port", () -> redis.getMappedPort(6379));
-    }
 
     @AfterEach
     void cleanup() {

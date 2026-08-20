@@ -11,7 +11,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.mist.commerce.common.idempotency.port.IdempotencyStore;
 import com.mist.commerce.domain.order.entity.OrderStatus;
 import com.mist.commerce.domain.order.exception.OrderAlreadyCancelledException;
 import com.mist.commerce.domain.order.exception.OrderCancelTemporarilyUnavailableException;
@@ -21,16 +20,12 @@ import com.mist.commerce.domain.order.exception.OrderNotFoundException;
 import com.mist.commerce.domain.order.service.CancelCommand;
 import com.mist.commerce.domain.order.service.CancelResult;
 import com.mist.commerce.domain.order.service.OrderCancelService;
-import com.mist.commerce.domain.user.service.CustomOAuth2UserService;
-import com.mist.commerce.domain.user.service.TokenService;
-import com.mist.commerce.global.config.OAuth2LoginFailureHandler;
-import com.mist.commerce.global.config.OAuth2LoginSuccessHandler;
 import com.mist.commerce.global.config.SecurityConfig;
+import com.mist.commerce.support.ControllerTestSupport;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -40,14 +35,12 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(OrderController.class)
 @Import({SecurityConfig.class, OrderControllerTest.FixedClockConfig.class})
-class OrderControllerTest {
+class OrderControllerTest extends ControllerTestSupport {
 
     private static final Long USER_ID = 10L;
     private static final Long ORDER_ID = 100L;
@@ -60,21 +53,6 @@ class OrderControllerTest {
     @MockitoBean
     private OrderCancelService orderCancelService;
 
-    @MockitoBean
-    private TokenService tokenService;
-
-    @MockitoBean
-    private CustomOAuth2UserService customOAuth2UserService;
-
-    @MockitoBean
-    private OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
-
-    @MockitoBean
-    private OAuth2LoginFailureHandler oAuth2LoginFailureHandler;
-
-    @MockitoBean
-    private IdempotencyStore idempotencyStore;
-
     @Test
     @DisplayName("TC-OC-CTL-01: 인증된 사용자가 필수 헤더로 취소 요청하면 200과 취소 응답을 반환한다")
     void cancel_withAuthenticatedUserAndIdempotencyKey_returns200AndSuccessEnvelope() throws Exception {
@@ -82,7 +60,7 @@ class OrderControllerTest {
                 .willReturn(new CancelResult(ORDER_ID, OrderStatus.CANCELLED.name(), CANCELLED_AT));
 
         mockMvc.perform(post("/api/v1/orders/{orderId}/cancel", ORDER_ID)
-                        .with(authentication(authenticatedUser()))
+                        .with(authentication(authenticatedUser(USER_ID, "ROLE_USER")))
                         .header("Idempotency-Key", IDEMPOTENCY_KEY))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
@@ -117,7 +95,7 @@ class OrderControllerTest {
     @DisplayName("TC-OC-CTL-02: Idempotency-Key 헤더가 없으면 400 VALIDATION_ERROR를 반환하고 서비스를 호출하지 않는다")
     void cancel_withoutIdempotencyKeyHeader_returns400AndDoesNotCallService() throws Exception {
         mockMvc.perform(post("/api/v1/orders/{orderId}/cancel", ORDER_ID)
-                        .with(authentication(authenticatedUser())))
+                        .with(authentication(authenticatedUser(USER_ID, "ROLE_USER"))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
@@ -189,16 +167,8 @@ class OrderControllerTest {
 
     private org.springframework.test.web.servlet.RequestBuilder authenticatedCancelRequest() {
         return post("/api/v1/orders/{orderId}/cancel", ORDER_ID)
-                .with(authentication(authenticatedUser()))
+                .with(authentication(authenticatedUser(USER_ID, "ROLE_USER")))
                 .header("Idempotency-Key", IDEMPOTENCY_KEY);
-    }
-
-    private UsernamePasswordAuthenticationToken authenticatedUser() {
-        return new UsernamePasswordAuthenticationToken(
-                USER_ID,
-                null,
-                List.of(new SimpleGrantedAuthority("ROLE_USER"))
-        );
     }
 
     @TestConfiguration

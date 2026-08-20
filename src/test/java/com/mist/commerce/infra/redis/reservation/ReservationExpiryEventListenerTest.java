@@ -7,7 +7,7 @@ import static org.mockito.Mockito.verify;
 
 import com.mist.commerce.CommerceApplication;
 import com.mist.commerce.domain.reservation.application.service.ExpiryRecoveryService;
-import com.mist.commerce.support.MySqlContainerTestSupport;
+import com.mist.commerce.support.MySqlRedisContainerTestSupport;
 import java.time.Duration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -15,36 +15,19 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.utility.DockerImageName;
 
 @SpringBootTest(classes = CommerceApplication.class)
-@Testcontainers
-class ReservationExpiryEventListenerTest extends MySqlContainerTestSupport {
+class ReservationExpiryEventListenerTest extends MySqlRedisContainerTestSupport {
 
     private static final Long ORDER_ID = 777L;
     private static final Duration MARKER_TTL = Duration.ofSeconds(2);
-
-    @Container
-    static GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
-            .withExposedPorts(6379);
 
     @Autowired
     private StringRedisTemplate redisTemplate;
 
     @MockitoBean
     private ExpiryRecoveryService expiryRecoveryService;
-
-    @DynamicPropertySource
-    static void redisProps(DynamicPropertyRegistry registry) {
-        registry.add("spring.data.redis.host", redis::getHost);
-        registry.add("spring.data.redis.port", () -> redis.getMappedPort(6379));
-    }
 
     @BeforeEach
     void setUp() {

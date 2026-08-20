@@ -14,7 +14,7 @@ import com.mist.commerce.domain.reservation.entity.InventoryReservation;
 import com.mist.commerce.domain.reservation.entity.ReservationStatus;
 import com.mist.commerce.infra.redis.reservation.RedisOptionStockRepository;
 import com.mist.commerce.domain.reservation.repository.InventoryReservationRepository;
-import com.mist.commerce.support.MySqlContainerTestSupport;
+import com.mist.commerce.support.MySqlRedisContainerTestSupport;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -30,19 +30,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.utility.DockerImageName;
 
 @SpringBootTest(classes = CommerceApplication.class)
-@Testcontainers
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
-class ExpiryRecoveryConcurrencyTest extends MySqlContainerTestSupport {
+class ExpiryRecoveryConcurrencyTest extends MySqlRedisContainerTestSupport {
 
     private static final Long USER_ID = 10L;
     private static final Long EVENT_ID = 100L;
@@ -52,10 +45,6 @@ class ExpiryRecoveryConcurrencyTest extends MySqlContainerTestSupport {
     private static final int STOCK_QUANTITY = 10;
     private static final int RESERVED_QUANTITY = 3;
     private static final int REDIS_REMAINING_AFTER_RESERVE = 7;
-
-    @Container
-    static GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
-            .withExposedPorts(6379);
 
     @Autowired
     private ExpiryRecoveryService expiryRecoveryService;
@@ -77,12 +66,6 @@ class ExpiryRecoveryConcurrencyTest extends MySqlContainerTestSupport {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
-
-    @DynamicPropertySource
-    static void redisProps(DynamicPropertyRegistry registry) {
-        registry.add("spring.data.redis.host", redis::getHost);
-        registry.add("spring.data.redis.port", () -> redis.getMappedPort(6379));
-    }
 
     @BeforeEach
     void setUp() {
